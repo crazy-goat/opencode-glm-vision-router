@@ -12,8 +12,9 @@ const IMAGE_MIME = /^image\//i
 // A path attachment reaches the model as text, so the vision model must read
 // the file. The OpenCode read tool returns only images and pdf files.
 const READABLE_MODALITIES = new Set(["image", "pdf"])
+// The OpenCode read tool returns media only for these image types.
 const MODALITY_EXTENSIONS = {
-  image: /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i,
+  image: /\.(png|jpe?g|gif|webp)$/i,
   pdf: /\.pdf$/i,
 }
 const IMAGE_EXTENSION = MODALITY_EXTENSIONS.image
@@ -38,8 +39,25 @@ export function mimeModality(mime) {
   return value === "application/pdf" ? "pdf" : undefined
 }
 
+// MIME types of the images that the read tool returns.
+const READABLE_IMAGE_MIME = /^image\/(png|jpeg|gif|webp)$/i
+
+/** True when a file path is an image that the read tool returns. */
+function isReadableImagePath(path, mime) {
+  return (
+    IMAGE_EXTENSION.test(String(path ?? "")) || READABLE_IMAGE_MIME.test(String(mime ?? "").trim())
+  )
+}
+
 function attachmentModality(attachment) {
   const byMime = mimeModality(attachment?.mime)
+  if (byMime === "image") {
+    const readable =
+      READABLE_IMAGE_MIME.test(String(attachment?.mime).trim()) ||
+      IMAGE_EXTENSION.test(String(attachment?.name ?? "")) ||
+      IMAGE_EXTENSION.test(String(attachment?.path ?? ""))
+    return readable ? byMime : undefined
+  }
   if (byMime) return READABLE_MODALITIES.has(byMime) ? byMime : undefined
   for (const [modality, extension] of Object.entries(MODALITY_EXTENSIONS)) {
     if (
@@ -217,10 +235,11 @@ export function screenshotImage(result) {
   const paths = []
   if (Array.isArray(output.files)) {
     for (const file of output.files) {
-      if (isImageMime(file?.mime) && file?.path) paths.push(String(file.path))
+      if (isImageMime(file?.mime) && file?.path && isReadableImagePath(file.path, file.mime))
+        paths.push(String(file.path))
     }
   }
-  if (typeof output.path === "string" && output.path) paths.push(output.path)
+  if (typeof output.path === "string" && IMAGE_EXTENSION.test(output.path)) paths.push(output.path)
   const texts = [
     ...(typeof result?.output === "string" ? [result.output] : []),
     ...content.flatMap((item) => (item?.type === "text" ? [item.text] : [])),
@@ -274,5 +293,6 @@ function stringify(value) {
 
 /** Instruction added when a screenshot tool saves the image only to a file. */
 export function visionReadContent(paths) {
-  return `Screenshot saved to: ${paths.join(", ")}. Read the file to view the image.`
+  const list = paths.map((path) => `"${path}"`).join(", ")
+  return `Screenshot saved to: ${list}. Read the file to view the image.`
 }

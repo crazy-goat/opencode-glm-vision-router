@@ -42,7 +42,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Correct the README: inline images from the screenshot tools are routed, not
   dropped. OpenCode stores them in the tool result before the note replaces
   them in a text-only request.
-
 - State OpenCode Go as the default setup in the README. Remove the
   alternative-provider configuration example.
 - Simplify installation to one command. Describe the `opencode-go/glm-5.3`
@@ -86,3 +85,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   failed with `VariantUnavailableError`.
 - Route only requests on the configured provider and text model. Before, the
   read rescue also ran for a model with the same id from another provider.
+- Route a path only when its extension is png, jpg, jpeg, gif or webp. The
+  `read` tool returns media for these types only. Before, a path with another
+  image extension, such as bmp or heic, routed and the `read` failed.
+- Quote each path in the read instruction. Before, a path with a space or a
+  comma was not clear.

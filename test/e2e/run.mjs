@@ -31,6 +31,7 @@ const PROVIDER = "mock"
 const TEXT = "glm-5.3"
 const VISION = "glm-5.3-flash"
 const TIMEOUT_MS = 30_000
+const QUIET_MS = 1000
 
 const PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
@@ -202,7 +203,10 @@ function startServer(bin, env, cwd) {
     bin,
     [
       "serve",
-      ...(process.env.E2E_DEBUG ? ["--print-logs"] : []),
+      // Warnings must reach the log without E2E_DEBUG, so the harness can find plugin load errors.
+      "--print-logs",
+      "--log-level",
+      process.env.E2E_DEBUG ? "debug" : "warn",
       "--hostname",
       "127.0.0.1",
       "--port",
@@ -226,6 +230,18 @@ function startServer(bin, env, cwd) {
     child.on("exit", (code) => reject(new Error("opencode serve exited with code " + code)))
   })
   return { child, url, log }
+}
+
+// Texts that OpenCode 2.3.2 logs when it does not load a plugin or ignores its config.
+const PLUGIN_LOAD_PROBLEM =
+  /failed to load plugin|configured plugin path must be a directory|path=\$\.plugins\b[^\n]*malformed/i
+
+/** The log lines that show a plugin did not load. */
+function pluginLoadProblems(log) {
+  return log
+    .join("")
+    .split("\n")
+    .filter((line) => PLUGIN_LOAD_PROBLEM.test(line))
 }
 
 async function main() {
@@ -310,11 +326,24 @@ async function main() {
       }
       throw new Error("session " + id + " did not reach idle marker " + count)
     }
-    // Waits for the idle marker, then a short time, so that a late second turn shows in the count.
+    // Waits for the idle marker, then for a quiet period without a new mock request
+    // or a new idle row, so that a late second turn shows in the count.
     const waitSettled = async (id, count) => {
-      await waitIdle(id, count)
-      await sleep(500)
-      return context(id)
+      let rows = await waitIdle(id, count)
+      const deadline = Date.now() + TIMEOUT_MS
+      let seen = { requests: mock.requests.length, idles: idles(rows).length }
+      let quietSince = Date.now()
+      while (Date.now() - quietSince < QUIET_MS) {
+        if (Date.now() > deadline) throw new Error("session " + id + " did not settle")
+        await sleep(100)
+        rows = await context(id)
+        const now = { requests: mock.requests.length, idles: idles(rows).length }
+        if (now.requests !== seen.requests || now.idles !== seen.idles) {
+          seen = now
+          quietSince = Date.now()
+        }
+      }
+      return rows
     }
     const since = (start) => mock.requests.slice(start)
     const primary = (list) => list.filter((request) => !request.aux)
@@ -395,6 +424,9 @@ async function main() {
       idles(rows).length === 1,
       idles(rows).length,
     )
+
+    const runProblems = pluginLoadProblems(server.log)
+    check("the server log shows no plugin load problem", runProblems.length === 0, runProblems)
 
     // Auxiliary requests, such as titles, stay on the text model.
     const aux = mock.requests.filter((request) => request.aux)

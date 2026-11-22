@@ -1,6 +1,6 @@
 export default [
   {
-    files: ["**/*.js"],
+    files: ["**/*.js", "**/*.mjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -12,6 +12,20 @@ export default [
     rules: {
       "no-undef": "error",
       "no-unused-vars": "error",
+    },
+  },
+  {
+    files: ["test/e2e/**"],
+    languageOptions: {
+      globals: {
+        Bun: "readonly",
+        Buffer: "readonly",
+        URL: "readonly",
+        Response: "readonly",
+        fetch: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
     },
   },
   {

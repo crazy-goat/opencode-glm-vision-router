@@ -122,6 +122,16 @@ describe("userMessageModalities", () => {
     expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set(["image"]))
   })
 
+  test("ignores a path attachment of an image type that read cannot return", () => {
+    const attachments = [{ name: "photo.heic", path: "/tmp/photo.heic" }]
+    expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set())
+  })
+
+  test("ignores a path attachment with an image MIME type that read cannot return", () => {
+    const attachments = [{ name: "photo.heic", mime: "image/heic", path: "/tmp/photo.heic" }]
+    expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set())
+  })
+
   test("ignores a path attachment that is not an image", () => {
     const attachments = [{ name: "notes.txt", mime: "text/plain", path: "/tmp/notes.txt" }]
     expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set())
@@ -177,6 +187,12 @@ describe("codemodeNoticeModalities", () => {
   test("accepts a file URI of an image", () => {
     expect(codemodeNoticeModalities(codemodeNotice({ paths: ["file:///tmp/a.webp"] }))).toEqual(
       new Set(["image"]),
+    )
+  })
+
+  test("rejects a notice with an image path that read cannot return", () => {
+    expect(codemodeNoticeModalities(codemodeNotice({ paths: ["/tmp/shot.bmp"] }))).toEqual(
+      new Set(),
     )
   })
 
@@ -402,6 +418,20 @@ describe("screenshotImage", () => {
     expect(screenshotImage(result)).toEqual({ inline: false, paths: ["/tmp/a.png", "/tmp/b.png"] })
   })
 
+  test("ignores a saved file of an image type that read cannot return", () => {
+    const files = [{ mime: "image/bmp", path: "/tmp/a.bmp" }]
+    expect(screenshotImage({ output: { files } })).toEqual({ inline: false, paths: [] })
+    expect(screenshotImage({ output: { path: "/tmp/a.bmp" } })).toEqual({
+      inline: false,
+      paths: [],
+    })
+  })
+
+  test("keeps a saved file with a readable MIME type and no extension", () => {
+    const files = [{ mime: "image/png", path: "/tmp/a" }]
+    expect(screenshotImage({ output: { files } })).toEqual({ inline: false, paths: ["/tmp/a"] })
+  })
+
   test("ignores saved files that are not images", () => {
     const result = { output: { files: [{ mime: "text/html", path: "/tmp/page.html" }] } }
     expect(screenshotImage(result)).toEqual({ inline: false, paths: [] })
@@ -480,8 +510,14 @@ describe("toolContent", () => {
 describe("visionReadContent", () => {
   test("names every path and asks for a read", () => {
     const text = visionReadContent(["/tmp/a.png", "/tmp/b.png"])
-    expect(text).toContain("/tmp/a.png, /tmp/b.png")
+    expect(text).toContain('"/tmp/a.png", "/tmp/b.png"')
     expect(text).toContain("Read the file")
+  })
+
+  test("quotes a path with a space or a comma", () => {
+    expect(visionReadContent(["/a b.png", "/c,d.png"])).toBe(
+      'Screenshot saved to: "/a b.png", "/c,d.png". Read the file to view the image.',
+    )
   })
 })
 
