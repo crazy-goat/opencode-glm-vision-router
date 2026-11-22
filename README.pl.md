@@ -13,7 +13,8 @@ angielskim.
 
 ## Wymagania
 
-- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono na 2.3.2.
+- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono w kodzie źródłowym na
+  2.2.7 i 2.3.2. Test end-to-end działał na 2.3.2.
 - Dwa modele pod jednym dostawcą: jeden bez obsługi obrazu, jeden z obsługą.
 - Model z obsługą obrazu musi być na liście modeli OpenCode. Wyłączony model nie
   jest na tej liście.
