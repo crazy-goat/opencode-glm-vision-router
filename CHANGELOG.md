@@ -18,3 +18,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - State OpenCode Go as the default setup in the README. Remove the
   alternative-provider configuration example.
+- Simplify installation to one command. Describe the `opencode-go/glm-5.3`
+  activation condition as behaviour, not as a setup step.

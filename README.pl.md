@@ -28,31 +28,9 @@ Domyślna para dotyczy [OpenCode Go](https://opencode.ai/docs/console/go/):
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-Następnie ustaw model tekstowy jako domyślny w `opencode.jsonc`:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/glm-5.3",
-  "agent": {
-    "build": {
-      "model": "opencode-go/glm-5.3",
-      "variant": "low",
-    },
-  },
-}
-```
-
-Agent z własnym polem `model` nadpisuje ustawienie główne. Ustaw oba pola.
-
-## Opcje
-
-| Opcja      | Domyślna wartość         | Znaczenie                           |
-| ---------- | ------------------------ | ----------------------------------- |
-| `provider` | `opencode-go`            | ID dostawcy obu modeli              |
-| `text`     | `glm-5.3`                | ID modelu dla wiadomości bez obrazu |
-| `vision`   | `glm-5.3-flash`          | ID modelu dla wiadomości z obrazem  |
-| `variants` | `["low", "high", "max"]` | Warianty dostępne w obu modelach    |
+Gdy `opencode-go/glm-5.3` obsługuje wiadomość z obrazem, wtyczka używa
+`opencode-go/glm-5.3-flash` dla tego jednego żądania. Inne modele pozostają bez
+zmian. Wtyczka nie wymaga opcji.
 
 ## Ograniczenia
 
