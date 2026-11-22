@@ -109,7 +109,7 @@ Dla narzędzia z listy `screenshotTools` hook narzędzi `execute.after` sprawdza
 zakończony wynik. Hook działa tylko wtedy, gdy wynik nie ma obrazu, a jego
 `output` podaje ścieżkę obrazu: tekst w `output.path` albo element
 `output.files` z typem MIME obrazu i polem `path`. Wtedy hook dodaje do wyniku
-tekst: `Screenshot saved to: <path>. Read the file to view the image.` Model
+tekst: `Screenshot saved to: "<path>". Read the file to view the image.` Model
 czyta ten plik, a następne żądanie używa modelu z obsługą obrazu.
 
 Dla narzędzia MCP OpenCode bierze `output` z `structuredContent`. Gdy narzędzie

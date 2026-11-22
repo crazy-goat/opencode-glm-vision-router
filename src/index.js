@@ -47,7 +47,9 @@ export default Plugin.define({
       ).map(String),
     )
 
+    // The set has a size limit, so errors with unique text cannot grow it without limit.
     const warned = new Set()
+    const WARNED_LIMIT = 100
     const warnOnce = (message, ...details) => {
       // The key includes the error, so a failure with a new cause still logs.
       const key = [
@@ -55,6 +57,7 @@ export default Plugin.define({
         ...details.map((d) => (d instanceof Error ? `${d.name}: ${d.message}` : String(d))),
       ].join("\n")
       if (warned.has(key)) return
+      if (warned.size >= WARNED_LIMIT) warned.delete(warned.values().next().value)
       warned.add(key)
       console.warn(`[glm-vision-router] ${message}`, ...details)
     }

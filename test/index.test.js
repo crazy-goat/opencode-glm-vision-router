@@ -267,6 +267,24 @@ describe("experimental.model.resolve", () => {
     expect(warn).toHaveBeenCalledTimes(2)
   })
 
+  test("limits the memory of warnings, so unique errors cannot grow it", async () => {
+    const { resolve, errors } = await harness({ contextError: new Error("same") })
+    await resolve()
+    for (let i = 0; i < 100; i++) {
+      errors.context = new Error("unique " + i)
+      await resolve()
+    }
+    expect(warn).toHaveBeenCalledTimes(101)
+    // The oldest key left the set, so the same error logs again.
+    errors.context = new Error("same")
+    await resolve()
+    expect(warn).toHaveBeenCalledTimes(102)
+    // Only the oldest key left: a recent error stays quiet.
+    errors.context = new Error("unique 99")
+    await resolve()
+    expect(warn).toHaveBeenCalledTimes(102)
+  })
+
   test("warns once when the same error repeats", async () => {
     const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
     await resolve()
@@ -319,7 +337,7 @@ describe("execute.after", () => {
       { type: "text", text: '{"path":"/tmp/screen.png"}' },
       {
         type: "text",
-        text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
+        text: 'Screenshot saved to: "/tmp/screen.png". Read the file to view the image.',
       },
     ])
     expect(event.result.output).toEqual({ path: "/tmp/screen.png" })
@@ -334,7 +352,7 @@ describe("execute.after", () => {
       { type: "text", text: "Saved /tmp/screen.png (1280x720)" },
       {
         type: "text",
-        text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
+        text: 'Screenshot saved to: "/tmp/screen.png". Read the file to view the image.',
       },
     ])
   })
@@ -348,7 +366,7 @@ describe("execute.after", () => {
       { type: "text", text: '{"path":"/tmp/screen.png"}' },
       {
         type: "text",
-        text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
+        text: 'Screenshot saved to: "/tmp/screen.png". Read the file to view the image.',
       },
     ])
   })
@@ -365,7 +383,7 @@ describe("execute.after", () => {
       { type: "text", text: "file:///tmp/screen%20one.png" },
       {
         type: "text",
-        text: "Screenshot saved to: /tmp/screen one.png. Read the file to view the image.",
+        text: 'Screenshot saved to: "/tmp/screen one.png". Read the file to view the image.',
       },
     ])
   })

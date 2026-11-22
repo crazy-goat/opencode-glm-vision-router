@@ -106,8 +106,8 @@ For a tool in `screenshotTools`, the `execute.after` tool hook checks the
 completed result. The hook acts only if the result has no image and its output
 gives an image path: an `output.path` string, or an `output.files` item with an
 image MIME type and a `path`. Then the hook adds this text to the result:
-`Screenshot saved to: <path>. Read the file to view the image.` The model reads
-the file, and the next request uses the vision model.
+`Screenshot saved to: "<path>". Read the file to view the image.` The model
+reads the file, and the next request uses the vision model.
 
 For an MCP tool, OpenCode takes the output from `structuredContent`. If the
 tool has no `outputSchema`, OpenCode also takes the output from a text result
