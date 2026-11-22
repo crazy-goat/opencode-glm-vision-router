@@ -99,10 +99,15 @@ turze. Kolejne żądania tej tury nadal używają modelu z obsługą obrazu.
 Żądania na innych modelach i u innych dostawców też pozostają bez zmian.
 
 Dla narzędzia z listy `screenshotTools` hook narzędzi `execute.after` sprawdza
-zakończony wynik. Gdy wynik nie ma obrazu, ale podaje ścieżkę zapisanego pliku
-obrazu, hook dodaje do wyniku tekst:
-`Screenshot saved to: <path>. Read the file to view the image.` Model czyta
-wtedy plik, a następne żądanie używa modelu z obsługą obrazu.
+zakończony wynik. Hook działa tylko wtedy, gdy wynik nie ma obrazu, a jego
+`output` podaje ścieżkę obrazu: tekst w `output.path` albo element
+`output.files` z typem MIME obrazu i polem `path`. Wtedy hook dodaje do wyniku
+tekst: `Screenshot saved to: <path>. Read the file to view the image.` Model
+czyta ten plik, a następne żądanie używa modelu z obsługą obrazu.
+
+Dla narzędzia MCP OpenCode bierze `output` z `structuredContent` albo z wyniku
+tekstowego w formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
+nie podaje ścieżki, więc hook nic nie robi.
 
 ## Ograniczenia
 
