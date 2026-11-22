@@ -25,57 +25,13 @@ report a cost of zero and consume the per-5-hour request allowance instead.
 
 ## Install
 
-OpenCode can install a plugin directly from a Git repository, so an npm
-release is optional.
-
 ```sh
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-Or add the target to `opencode.jsonc`:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "plugins": ["github:crazy-goat/opencode-glm-vision-router"],
-}
-```
-
-Pin a branch with `github:crazy-goat/opencode-glm-vision-router#main`. A bare
-name or a tag stays on the installed version; use `@latest` or a semver range
-to follow updates.
-
-To make the router active by default, select the text model:
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/glm-5.3",
-  "agent": {
-    "build": {
-      "model": "opencode-go/glm-5.3",
-      "variant": "low",
-    },
-  },
-}
-```
-
-An agent-level `model` overrides the root default, so set both when the
-`build` agent has its own model.
-
-## Options
-
-The defaults target OpenCode Go. The standard setup needs no options.
-
-Advanced users can pass overrides through the `options` field of a plugin
-entry:
-
-| Option     | Default                  | Purpose                           |
-| ---------- | ------------------------ | --------------------------------- |
-| `provider` | `opencode-go`            | Provider ID shared by both models |
-| `text`     | `glm-5.3`                | Model ID used for text-only turns |
-| `vision`   | `glm-5.3-flash`          | Model ID used for image turns     |
-| `variants` | `["low", "high", "max"]` | Variants offered by both models   |
+When `opencode-go/glm-5.3` handles a turn with an image, the plugin uses
+`opencode-go/glm-5.3-flash` for that one request. Other models are left
+unchanged. No options are needed.
 
 ## How it works
 
@@ -84,8 +40,9 @@ entry:
 2. The `context` hook detects images returned by tools after the last user
    message, for example the `read` tool on a PNG file.
 3. The `experimental.model.resolve` hook rewrites the model for `primary`
-   requests when the flag is set. Auxiliary requests such as titles and
-   compaction are skipped.
+   requests when the flag is set and the selected model is
+   `opencode-go/glm-5.3`. Auxiliary requests such as titles and compaction
+   are skipped.
 
 Images in older turns do not keep the router armed. A new user turn without an
 image clears the flag.
