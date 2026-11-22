@@ -76,7 +76,9 @@ for the session.
    - an image file in a user message;
    - an image path attachment from a desktop client, in the message metadata;
    - an image file in a tool result, for example from a `read` of an image or
-     from a screenshot tool. The `rescue` option controls this check.
+     from a screenshot tool. The `rescue` option controls this check;
+   - an image file path in the notice of a Code Mode script that ran in the
+     background. The `rescue` option controls this check too.
 4. If the turn has an image, the request uses the vision model. The plugin
    carries over the variant only if the vision model has it and `variants`
    allows it.
@@ -106,6 +108,13 @@ For an MCP tool, OpenCode takes the output from `structuredContent`. If the
 tool has no `outputSchema`, OpenCode also takes the output from a text result
 that is JSON. A plain text result such as `Saved to /tmp/a.png`
 gives no path, so the hook does nothing.
+
+A Code Mode script that moves to the background saves its image files. OpenCode
+lists only the file paths in a notice message, not the images. The plugin routes
+the next request to the vision model, because the vision model can read the
+files with the `read` tool. The vision model does not see the images before it
+reads them. A script that runs in the foreground returns its images inline, so
+it needs no special check.
 
 ## Limitations
 

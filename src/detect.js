@@ -60,13 +60,34 @@ export function toolResultHasImage(message) {
   })
 }
 
+const CODEMODE_NOTICE = /^<codemode id="[^"\n]*" state="completed">\n([\s\S]*)\n<\/codemode>$/
+const FILE_LOCATION = /^(\/|file:\/\/|[A-Za-z]:[\\/])/
+
+/**
+ * True when a stored message is the notice of a Code Mode job that ran in the
+ * background, and the notice lists the path of an image file. OpenCode saves
+ * the files of such a job and lists only their paths, one per line, in a
+ * synthetic message. The check needs the `codemode` source in the metadata
+ * and the `<codemode>` text wrapper, so other text never matches.
+ */
+export function codemodeNoticeHasImage(message) {
+  if (message?.type !== "synthetic" || message.metadata?.source !== "codemode") return false
+  const match = CODEMODE_NOTICE.exec(String(message.text ?? ""))
+  if (!match) return false
+  return match[1]
+    .split("\n")
+    .some((line) => FILE_LOCATION.test(line) && IMAGE_EXTENSION.test(line.trim()))
+}
+
 /**
  * True when the current turn carries an image: in a user message, or, when
- * `toolResults` is true, in a tool result.
+ * `toolResults` is true, in a tool result or a Code Mode job notice.
  */
 export function turnHasImage(messages, { toolResults = true } = {}) {
   return currentTurn(messages).some(
-    (message) => userMessageHasImage(message) || (toolResults && toolResultHasImage(message)),
+    (message) =>
+      userMessageHasImage(message) ||
+      (toolResults && (toolResultHasImage(message) || codemodeNoticeHasImage(message))),
   )
 }
 

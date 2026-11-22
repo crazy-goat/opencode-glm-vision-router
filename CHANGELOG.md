@@ -18,6 +18,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Tool result images route the next request. After a `read` of an image file
   or a screenshot on the text model, the next request of the turn uses the
   vision model and sees the stored image.
+- Image files from a Code Mode script that runs in the background route the
+  next request. The notice of such a script lists only the file paths, so the
+  vision model reads the files. The `rescue` option controls this check.
 - A read instruction for screenshot tools that save the image only to a file.
   The `screenshotTools` option lists these tools.
 - Unit tests for detection and routing decisions.

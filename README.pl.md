@@ -79,7 +79,9 @@ zapisuje w sesji.
    - pliku obrazu w wiadomości użytkownika;
    - załącznika ze ścieżką do obrazu z klienta desktop, w metadanych wiadomości;
    - pliku obrazu w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
-     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
+     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem;
+   - ścieżki pliku obrazu w powiadomieniu skryptu Code Mode, który działał w
+     tle. Opcja `rescue` steruje także tym sprawdzeniem.
 4. Gdy tura ma obraz, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
    wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
    pozwala.
@@ -109,6 +111,13 @@ Dla narzędzia MCP OpenCode bierze `output` z `structuredContent`. Gdy narzędzi
 nie ma `outputSchema`, OpenCode bierze `output` także z wyniku tekstowego w
 formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
 nie podaje ścieżki, więc hook nic nie robi.
+
+Skrypt Code Mode, który przechodzi do tła, zapisuje swoje pliki obrazów.
+OpenCode wypisuje w powiadomieniu tylko ścieżki plików, bez obrazów. Wtyczka
+kieruje następne żądanie do modelu z obsługą obrazu, bo ten model może odczytać
+pliki narzędziem `read`. Model nie widzi obrazów, zanim je odczyta. Skrypt, który
+działa na pierwszym planie, zwraca obrazy w wyniku, więc nie wymaga osobnego
+sprawdzenia.
 
 ## Ograniczenia
 

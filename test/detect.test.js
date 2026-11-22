@@ -7,6 +7,7 @@ import {
   rescueEnabled,
   screenshotImage,
   toolContent,
+  codemodeNoticeHasImage,
   toolResultHasImage,
   turnHasImage,
   userMessageHasImage,
@@ -19,6 +20,7 @@ import {
   TEXT_MODEL,
   assistant,
   bashCall,
+  codemodeNotice,
   failedToolCall,
   idle,
   imageFile,
@@ -156,7 +158,60 @@ describe("toolResultHasImage", () => {
   })
 })
 
+describe("codemodeNoticeHasImage", () => {
+  const png = "/tmp/opencode/tool_0123456789ab.png"
+
+  test("accepts an image path in a Code Mode notice", () => {
+    expect(codemodeNoticeHasImage(codemodeNotice({ paths: [png] }))).toBe(true)
+    expect(codemodeNoticeHasImage(codemodeNotice({ paths: ["/tmp/a b/SHOT.JPG"] }))).toBe(true)
+  })
+
+  test("accepts a file URI of an image", () => {
+    expect(codemodeNoticeHasImage(codemodeNotice({ paths: ["file:///tmp/a.webp"] }))).toBe(true)
+  })
+
+  test("rejects a notice without an image path", () => {
+    expect(codemodeNoticeHasImage(codemodeNotice())).toBe(false)
+    expect(codemodeNoticeHasImage(codemodeNotice({ paths: ["/tmp/tool_0123456789ab.pdf"] }))).toBe(
+      false,
+    )
+    const failed = codemodeNotice({ output: "see /tmp/x.png in prose", state: "failed" })
+    expect(codemodeNoticeHasImage(failed)).toBe(false)
+  })
+
+  test("rejects the text of a plain synthetic message and of a user message", () => {
+    expect(codemodeNoticeHasImage(synthetic(png))).toBe(false)
+    expect(
+      codemodeNoticeHasImage(
+        user({ text: `<codemode id="j" state="completed">\n${png}\n</codemode>` }),
+      ),
+    ).toBe(false)
+    const bare = { ...codemodeNotice({ paths: [png] }), metadata: undefined }
+    expect(codemodeNoticeHasImage(bare)).toBe(false)
+    expect(codemodeNoticeHasImage({ ...bare, metadata: { source: "other" } })).toBe(false)
+  })
+
+  test("rejects a missing message", () => {
+    expect(codemodeNoticeHasImage(undefined)).toBe(false)
+  })
+})
+
 describe("turnHasImage", () => {
+  test("a Code Mode notice with an image path counts as an image", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnHasImage([user(), assistant(), notice])).toBe(true)
+  })
+
+  test("a Code Mode notice does not count when tool results are off", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnHasImage([user(), notice], { toolResults: false })).toBe(false)
+  })
+
+  test("a Code Mode notice of an earlier turn does not count", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnHasImage([user(), notice, idle(), user(), assistant()])).toBe(false)
+  })
+
   test("is true for an image in the current user message", () => {
     expect(turnHasImage([user({ files: [imageFile()] })])).toBe(true)
   })
