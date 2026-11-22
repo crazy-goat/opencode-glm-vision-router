@@ -22,6 +22,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - A read instruction for screenshot tools that save the image only to a file.
   The `screenshotTools` option lists these tools.
 - Unit tests for detection and routing decisions.
+- An optional end-to-end harness, `bash bin/e2e.sh`. It runs an isolated
+  `opencode serve` with a mock provider and checks the routing scenarios.
 
 ### Changed
 
