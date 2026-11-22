@@ -35,10 +35,12 @@ unchanged. No options are needed.
 
 ## How it works
 
-1. The `prompt` hook checks the attachments of each new user turn and stores
-   an image flag for that session.
-2. The `context` hook detects images returned by tools after the last user
-   message, for example the `read` tool on a PNG file.
+1. The `prompt` hook checks the prompt files and the admission metadata
+   attachments of each new user turn and stores an image flag for that
+   session. Client uploads that arrive as metadata attachments are covered.
+2. The `context` hook detects images of the current turn: the attachments and
+   image parts of the last user message, and images returned by tools after
+   it, for example the `read` tool on a PNG file.
 3. The `experimental.model.resolve` hook rewrites the model for `primary`
    requests when the flag is set and the selected model is
    `opencode-go/glm-5.3`. Auxiliary requests such as titles and compaction

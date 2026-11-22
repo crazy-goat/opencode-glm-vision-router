@@ -12,6 +12,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   same provider when the current turn carries an image.
 - Configurable `provider`, `text`, `vision` and `variants` options.
 - Image detection in prompt attachments and in tool results.
+- Detection of admission metadata attachments, so uploads from desktop and
+  TUI clients route to the vision model as well.
 - Unit tests for detection and routing decisions.
 
 ### Changed

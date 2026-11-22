@@ -6,7 +6,14 @@
  * selected model, and the assistant message records the model actually used.
  */
 import { Plugin } from "@opencode/plugin"
-import { fileIsImage, resolveModel, toolResultHasImage } from "./detect.js"
+import {
+  attachmentIsImage,
+  attachmentsOf,
+  fileIsImage,
+  resolveModel,
+  toolResultHasImage,
+  userTurnHasImage,
+} from "./detect.js"
 
 export const DEFAULTS = {
   provider: "opencode-go",
@@ -31,11 +38,16 @@ export default Plugin.define({
 
     await ctx.session.hook("prompt", (event) => {
       const files = event.prompt.files ?? []
-      imageTurns.set(event.sessionID, files.some(fileIsImage))
+      const attachments = attachmentsOf(event)
+      imageTurns.set(
+        event.sessionID,
+        files.some(fileIsImage) || attachments.some(attachmentIsImage),
+      )
     })
 
     await ctx.session.hook("context", (event) => {
-      if (toolResultHasImage(event.messages ?? [])) {
+      const messages = event.messages ?? []
+      if (userTurnHasImage(messages) || toolResultHasImage(messages)) {
         imageTurns.set(event.sessionID, true)
       }
     })

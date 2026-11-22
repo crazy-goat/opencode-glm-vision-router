@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test"
 import {
+  attachmentIsImage,
+  attachmentsOf,
   fileIsImage,
   partIsImage,
   partsOf,
   resolveModel,
   toolResultHasImage,
+  userTurnHasImage,
 } from "../src/detect.js"
 
 const selected = { providerID: "opencode-go", id: "glm-5.3" }
@@ -81,6 +84,53 @@ describe("fileIsImage", () => {
   test("rejects an empty attachment", () => {
     expect(fileIsImage(undefined)).toBe(false)
   })
+
+  test("accepts an attachment that carries only a path", () => {
+    expect(fileIsImage({ path: "/tmp/uploads/image.png" })).toBe(true)
+  })
+})
+
+describe("attachmentIsImage", () => {
+  test("accepts a client attachment with an image MIME type", () => {
+    expect(
+      attachmentIsImage({
+        name: "image.png",
+        mime: "image/png",
+        path: "/tmp/uploads/image.png",
+      }),
+    ).toBe(true)
+  })
+
+  test("accepts an attachment with an image name and no MIME type", () => {
+    expect(attachmentIsImage({ name: "photo.jpg", path: "/tmp/photo.jpg" })).toBe(true)
+  })
+
+  test("rejects a text attachment", () => {
+    expect(
+      attachmentIsImage({ name: "notes.txt", mime: "text/plain", path: "/tmp/notes.txt" }),
+    ).toBe(false)
+  })
+
+  test("rejects an empty attachment", () => {
+    expect(attachmentIsImage(undefined)).toBe(false)
+  })
+})
+
+describe("attachmentsOf", () => {
+  test("reads admission metadata of a prompt event", () => {
+    expect(attachmentsOf({ metadata: { attachments: [{ name: "image.png" }] } })).toEqual([
+      { name: "image.png" },
+    ])
+  })
+
+  test("reads a top-level attachments field", () => {
+    expect(attachmentsOf({ attachments: [{ name: "image.png" }] })).toEqual([{ name: "image.png" }])
+  })
+
+  test("returns an empty array without attachments", () => {
+    expect(attachmentsOf(undefined)).toEqual([])
+    expect(attachmentsOf({})).toEqual([])
+  })
 })
 
 describe("partIsImage", () => {
@@ -132,5 +182,43 @@ describe("toolResultHasImage", () => {
 
   test("returns false without images", () => {
     expect(toolResultHasImage([{ role: "user", content: [{ type: "text" }] }])).toBe(false)
+  })
+})
+
+describe("userTurnHasImage", () => {
+  test("detects an attachment of the current user turn", () => {
+    const messages = [
+      {
+        role: "user",
+        metadata: {
+          attachments: [
+            {
+              name: "image.png",
+              mime: "image/png",
+              path: "/tmp/uploads/image.png",
+            },
+          ],
+        },
+      },
+    ]
+    expect(userTurnHasImage(messages)).toBe(true)
+  })
+
+  test("detects an image part of the current user turn", () => {
+    const messages = [{ role: "user", content: [{ type: "image" }] }]
+    expect(userTurnHasImage(messages)).toBe(true)
+  })
+
+  test("ignores an image attached in an older turn", () => {
+    const messages = [
+      { role: "user", metadata: { attachments: [{ name: "image.png", mime: "image/png" }] } },
+      { role: "assistant", content: [{ type: "text" }] },
+      { role: "user", content: [{ type: "text" }] },
+    ]
+    expect(userTurnHasImage(messages)).toBe(false)
+  })
+
+  test("returns false without a user message", () => {
+    expect(userTurnHasImage([])).toBe(false)
   })
 })
