@@ -24,6 +24,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Check the supported OpenCode floor in source. The step order, the hooks and
+  the stored message shapes are the same in 2.2.7 and 2.3.2, so the floor stays
+  at 2.2.7.
 - Correct the README: inline images from the screenshot tools are routed, not
   dropped. OpenCode stores them in the tool result before the note replaces
   them in a text-only request.

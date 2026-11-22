@@ -10,7 +10,8 @@ next turn without an image uses the selected model again.
 
 ## Requirements
 
-- OpenCode V2, version 2.2.7 or newer. Tested on 2.3.2.
+- OpenCode V2, version 2.2.7 or newer. Checked in source on 2.2.7 and 2.3.2.
+  Tested end to end on 2.3.2.
 - Two models under the same provider: one text-only, one with image input.
 - The vision model must be in the OpenCode model list. A disabled model is not
   in this list.
