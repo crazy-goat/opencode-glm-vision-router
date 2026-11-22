@@ -223,8 +223,9 @@ describe("experimental.model.resolve", () => {
   })
 
   test("warns once when the same error repeats", async () => {
-    const { resolve } = await harness({ contextError: new Error("decode failed") })
+    const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
     await resolve()
+    errors.context = new Error("decode failed")
     await resolve()
     expect(warn).toHaveBeenCalledTimes(1)
   })

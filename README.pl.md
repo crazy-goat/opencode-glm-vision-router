@@ -85,7 +85,7 @@ zapisuje w sesji.
    pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
    nie uda, żądanie zostaje na wybranym modelu. Wtyczka zapisuje
-   ostrzeżenie w logu raz dla każdej innej przyczyny.
+   ostrzeżenie w logu raz dla każdej odrębnej przyczyny.
 
 OpenCode zapisuje nowy prompt przed pierwszym żądaniem tury. Wyniki narzędzi z
 danego kroku zapisuje przed następnym żądaniem. Dlatego obraz od użytkownika
