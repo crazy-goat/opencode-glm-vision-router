@@ -25,6 +25,7 @@ async function harness({
   contextError,
   listError,
 } = {}) {
+  const errors = { context: contextError, list: listError }
   const hooks = {}
   const calls = { context: [], list: 0 }
   const registration = { dispose: async () => {} }
@@ -37,14 +38,14 @@ async function harness({
       },
       context: async (input) => {
         calls.context.push(input)
-        if (contextError) throw contextError
+        if (errors.context) throw errors.context
         return messages
       },
     },
     model: {
       list: async () => {
         calls.list += 1
-        if (listError) throw listError
+        if (errors.list) throw errors.list
         return { location: { directory: "/tmp/project" }, data: models }
       },
     },
@@ -61,7 +62,7 @@ async function harness({
     await hooks["experimental.model.resolve"](event)
     return event.model
   }
-  return { hooks, calls, resolve }
+  return { hooks, calls, errors, resolve }
 }
 
 const FLASH_HIGH = { providerID: "opencode-go", id: "glm-5.3-flash", variant: "high" }
@@ -210,6 +211,22 @@ describe("experimental.model.resolve", () => {
   test("keeps the selected model when the session read fails", async () => {
     const { resolve } = await harness({ contextError: new Error("decode failed") })
     expect(await resolve()).toEqual(TEXT_HIGH)
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
+  test("warns again when a later failure has a different cause", async () => {
+    const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
+    await resolve()
+    errors.context = new Error("disk full")
+    await resolve()
+    expect(warn).toHaveBeenCalledTimes(2)
+  })
+
+  test("warns once when the same error repeats", async () => {
+    const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
+    await resolve()
+    errors.context = new Error("decode failed")
+    await resolve()
     expect(warn).toHaveBeenCalledTimes(1)
   })
 

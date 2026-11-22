@@ -13,8 +13,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Configurable `provider`, `text`, `vision`, `variants`, `rescue` and
   `screenshotTools` options.
 - Image detection in prompt attachments and in tool results.
-- Detection of admission metadata attachments, so uploads from desktop and
-  TUI clients route to the vision model as well.
+- Detection of admission metadata attachments, so uploads from desktop
+  clients route to the vision model. The TUI sends uploads in `files`, which
+  the plugin also detects.
 - Tool result images route the next request. After a `read` of an image file
   or a screenshot on the text model, the next request of the turn uses the
   vision model and sees the stored image.
@@ -62,6 +63,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Write a warning for each different cause of an image check failure. Before,
+  the first failure hid all later failures with another cause.
 - Keep an image turn on the vision model when a text prompt is steered into
   it. Before, each admitted prompt reset the image flag.
 - Detect images in the message shapes that OpenCode 2.3.2 stores. Detection
