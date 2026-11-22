@@ -135,6 +135,27 @@ export function screenshotImage(result) {
 }
 
 /** Instruction added when a screenshot tool saves the image only to a file. */
+/**
+ * The content of a tool result as a list. OpenCode normalizes the content the
+ * same way, but only after all `execute.after` hooks: a string becomes one
+ * text item, and an empty or missing content becomes the output as text.
+ */
+export function toolContent(result) {
+  const content = result?.content
+  if (typeof content === "string") return [{ type: "text", text: content }]
+  if (Array.isArray(content) && content.length > 0) return [...content]
+  return [{ type: "text", text: stringify(result?.output) }]
+}
+
+function stringify(value) {
+  if (typeof value === "string") return value
+  try {
+    return JSON.stringify(value) ?? String(value)
+  } catch {
+    return String(value)
+  }
+}
+
 export function visionReadContent(paths) {
   return `Screenshot saved to: ${paths.join(", ")}. Read the file to view the image.`
 }

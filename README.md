@@ -107,8 +107,9 @@ reads the file, and the next request uses the vision model.
   change in a future OpenCode release.
 - A rewrite can only select another model from the **same provider**. A model
   from another provider resolves as unavailable.
-- If the vision model is not in the model list, image turns stay on the text
-  model. Do not disable the vision model.
+- The plugin checks the list of enabled models. If the vision model is not in
+  this list, image turns stay on the text model. Do not disable the vision
+  model.
 - The plugin reads the stored session before each `primary` request on the text
   model. In a long session, this read takes more time.
 - Images in older turns do not route. If a new turn is about an earlier image,

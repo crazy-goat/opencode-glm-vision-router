@@ -25,6 +25,9 @@ Domyślna para dotyczy [OpenCode Go](https://opencode.ai/docs/console/go/):
 | tekst | `opencode-go/glm-5.3`       | tekst               |
 | obraz | `opencode-go/glm-5.3-flash` | tekst, obraz, wideo |
 
+Oba modele mają warianty `low`, `high` i `max`. W stałym planie Go żądania
+mają koszt zero, ale zużywają limit żądań w oknie 5 godzin.
+
 ## Instalacja
 
 ```sh
@@ -107,8 +110,9 @@ wtedy plik, a następne żądanie używa modelu z obsługą obrazu.
   kształt zdarzenia mogą się zmienić w kolejnej wersji OpenCode.
 - Zmiana modelu działa tylko w obrębie **jednego dostawcy**. OpenCode uznaje
   model innego dostawcy za niedostępny.
-- Gdy modelu z obsługą obrazu nie ma na liście modeli, tury z obrazem zostają na
-  modelu tekstowym. Nie wyłączaj modelu z obsługą obrazu.
+- Wtyczka sprawdza listę włączonych modeli. Gdy modelu z obsługą obrazu nie ma
+  na tej liście, tury z obrazem zostają na modelu tekstowym. Nie wyłączaj modelu
+  z obsługą obrazu.
 - Wtyczka czyta zapisaną sesję przed każdym żądaniem `primary` na modelu
   tekstowym. W długiej sesji ten odczyt trwa dłużej.
 - Obrazy ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
@@ -122,6 +126,19 @@ wtedy plik, a następne żądanie używa modelu z obsługą obrazu.
   krótką notatkę.
 - Wtyczka nie zmienia modelu wybranego w sesji. `/models` nadal pokazuje model
   tekstowy.
+
+## Rozwój
+
+```sh
+bun install
+bun test
+bash bin/lint.sh
+```
+
+Repozytorium stosuje [standard repozytoriów
+crazy-goat](https://github.com/crazy-goat/.github). Kod, commity i dokumentację
+pisz po angielsku. Używaj Conventional Commits. Dla zmian widocznych dla
+użytkownika dodaj wpis w `CHANGELOG.md`.
 
 ## Licencja
 

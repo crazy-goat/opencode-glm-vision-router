@@ -13,6 +13,7 @@ import {
   isRoutable,
   rescueEnabled,
   screenshotImage,
+  toolContent,
   turnHasImage,
   visionModelRef,
   visionReadContent,
@@ -83,7 +84,7 @@ export default Plugin.define({
         const { inline, paths } = screenshotImage(event.result)
         if (inline || paths.length === 0) return
         event.result.content = [
-          ...(Array.isArray(event.result.content) ? event.result.content : []),
+          ...toolContent(event.result),
           { type: "text", text: visionReadContent(paths) },
         ]
       })

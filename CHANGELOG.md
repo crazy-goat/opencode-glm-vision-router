@@ -42,6 +42,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   each variant that the vision model has.
 - If the image check fails, keep the selected model and write a warning to the
   log once.
+- A disabled vision model no longer routes. The plugin checks the list of
+  enabled models before the rewrite.
 - Pin `@opencode/plugin` to `^2.2.7` instead of `latest`.
 - Document all options, the turn rule and the limitations in the README.
 - Test the plugin hooks with message fixtures that the OpenCode 2.3.2 schema
@@ -61,7 +63,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   it. Before, each admitted prompt reset the image flag.
 - Detect images in the message shapes that OpenCode 2.3.2 stores. Detection
   uses the MIME type, so a pasted image without a file extension also routes.
-- Keep the selected model when the vision model is not in the model list.
+- Keep the selected model when the provider catalog has no vision model.
   Before, the request failed with `ModelUnavailableError`.
 - Drop a variant that the vision model does not have. Before, the request
   failed with `VariantUnavailableError`.

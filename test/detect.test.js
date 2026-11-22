@@ -6,6 +6,7 @@ import {
   isRoutable,
   rescueEnabled,
   screenshotImage,
+  toolContent,
   toolResultHasImage,
   turnHasImage,
   userMessageHasImage,
@@ -35,6 +36,12 @@ describe("fixtures", () => {
     const file = { data: "aGk=", source: { type: "inline" } }
     expect(() =>
       stored({ id: "msg_x", type: "user", text: "x", files: [file], time: { created: 1 } }),
+    ).toThrow()
+  })
+
+  test("the OpenCode schema rejects a misspelled message key", () => {
+    expect(() =>
+      stored({ id: "msg_x", type: "user", text: "x", file: [imageFile()], time: { created: 1 } }),
     ).toThrow()
   })
 })
@@ -323,6 +330,26 @@ describe("screenshotImage", () => {
   test("handles an output that is not an object", () => {
     expect(screenshotImage({ output: "saved", content: [] })).toEqual({ inline: false, paths: [] })
     expect(screenshotImage(undefined)).toEqual({ inline: false, paths: [] })
+  })
+})
+
+describe("toolContent", () => {
+  test("turns a string content into one text item", () => {
+    expect(toolContent({ content: "saved" })).toEqual([{ type: "text", text: "saved" }])
+  })
+
+  test("returns a copy of a content list", () => {
+    const content = [{ type: "text", text: "a" }]
+    const result = toolContent({ content })
+    expect(result).toEqual(content)
+    expect(result).not.toBe(content)
+  })
+
+  test("uses the output as text when the content is empty or missing", () => {
+    expect(toolContent({ output: { path: "/tmp/a.png" }, content: [] })).toEqual([
+      { type: "text", text: '{"path":"/tmp/a.png"}' },
+    ])
+    expect(toolContent({ output: "saved" })).toEqual([{ type: "text", text: "saved" }])
   })
 })
 

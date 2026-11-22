@@ -263,6 +263,34 @@ describe("execute.after", () => {
     expect(event.result.output).toEqual({ path: "/tmp/screen.png" })
   })
 
+  test("keeps a string content when it adds the read instruction", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    event.result.content = "Saved /tmp/screen.png (1280x720)"
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([
+      { type: "text", text: "Saved /tmp/screen.png (1280x720)" },
+      {
+        type: "text",
+        text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
+      },
+    ])
+  })
+
+  test("uses the output as text when the result has no content", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    delete event.result.content
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([
+      { type: "text", text: '{"path":"/tmp/screen.png"}' },
+      {
+        type: "text",
+        text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
+      },
+    ])
+  })
+
   test("leaves a screenshot with an inline image unchanged", async () => {
     const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
     const event = fileOnly()

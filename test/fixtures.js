@@ -1,13 +1,14 @@
 /**
  * Stored session messages and model list entries in the encoded form that
- * OpenCode 2.3.2 returns to a plugin. Each builder checks its result with the
- * OpenCode schema, so a fixture cannot drift from the real shape.
+ * OpenCode 2.3.2 returns to a plugin. Each message builder checks its result
+ * with the OpenCode schema in strict mode, so an unknown or misspelled key
+ * fails, and a fixture cannot drift from the real shape.
  */
 import { Model } from "@opencode/schema/model"
 import { SessionMessage } from "@opencode/schema/session-message"
 import { Schema } from "effect"
 
-const decodeMessage = Schema.decodeUnknownSync(SessionMessage.Info)
+const decodeMessage = Schema.decodeUnknownSync(SessionMessage.Info, { onExcessProperty: "error" })
 const encodeModel = Schema.encodeSync(Model.Info)
 
 export const PNG_BASE64 =
