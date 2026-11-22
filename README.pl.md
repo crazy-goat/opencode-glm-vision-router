@@ -13,7 +13,8 @@ angielskim.
 
 ## Wymagania
 
-- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono na 2.3.2.
+- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono w kodzie źródłowym na
+  2.2.7 i 2.3.2. Test end-to-end działał na 2.3.2.
 - Dwa modele pod jednym dostawcą: jeden bez obsługi obrazu, jeden z obsługą.
 - Model z obsługą obrazu musi być na liście modeli OpenCode. Wyłączony model nie
   jest na tej liście.
@@ -84,8 +85,8 @@ zapisuje w sesji.
    wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
    pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
-   nie uda, żądanie zostaje na wybranym modelu. Wtyczka raz zapisuje
-   ostrzeżenie w logu.
+   nie uda, żądanie zostaje na wybranym modelu. Wtyczka zapisuje
+   ostrzeżenie w logu raz dla każdej odrębnej przyczyny.
 
 OpenCode zapisuje nowy prompt przed pierwszym żądaniem tury. Wyniki narzędzi z
 danego kroku zapisuje przed następnym żądaniem. Dlatego obraz od użytkownika
@@ -145,7 +146,14 @@ lub fragmentem oraz URI z hostem innym niż `localhost`.
 bun install
 bun test
 bash bin/lint.sh
+bash bin/e2e.sh
 ```
+
+`bash bin/e2e.sh` jest opcjonalny. Skrypt uruchamia odizolowany `opencode serve` z
+testowym dostawcą (mock provider) i sprawdza routing w prawdziwym OpenCode. Skrypt
+potrzebuje programu `opencode`. Ustaw `OPENCODE_BIN`, aby wskazać program. Bez programu
+skrypt wypisuje `skipped`. Jeśli `OPENCODE_BIN` jest ustawione, ale nie wskazuje
+wykonywalnego pliku, skrypt kończy się kodem 1. CI nie uruchamia tego skryptu.
 
 Repozytorium stosuje [standard repozytoriów
 crazy-goat](https://github.com/crazy-goat/.github). Wszystko pisz po angielsku.
