@@ -1,11 +1,12 @@
 # @crazy-goat/opencode-glm-vision-router
 
-Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje tury z obrazem lub wideo z modelu
+Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje tury medialne z modelu
 `GLM 5.3` bez obsługi obrazu na model `GLM 5.3 Flash` z obsługą obrazu. Oba
-modele mają tego samego dostawcę.
+modele mają tego samego dostawcę. Tura medialna ma plik, który przyjmuje tylko
+model z obsługą obrazu. Dla domyślnej pary te pliki to obrazy i wideo.
 
 Zmiana dotyczy pojedynczego żądania. Sesja nadal pokazuje wybrany model.
-Wiadomość asystenta zapisuje model faktycznie użyty. Następna tura bez obrazu
+Wiadomość asystenta zapisuje model faktycznie użyty. Następna tura bez mediów
 znowu używa wybranego modelu.
 
 Jest to tłumaczenie [README.md](README.md). Dokumentacja źródłowa jest w języku
@@ -34,7 +35,7 @@ mają koszt zero, ale zużywają limit żądań w oknie 5 godzin.
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-Gdy `opencode-go/glm-5.3` obsługuje turę z obrazem, wtyczka wysyła żądania tej
+Gdy `opencode-go/glm-5.3` obsługuje turę medialną, wtyczka wysyła żądania tej
 tury do `opencode-go/glm-5.3-flash`. Inne modele pozostają bez zmian. Domyślne
 ustawienia nie wymagają opcji.
 
@@ -77,13 +78,13 @@ zapisuje w sesji.
    bieżąca tura. OpenCode zapisuje ten znacznik, gdy sesja kończy pracę.
 3. Wtyczka szuka plików multimedialnych w bieżącej turze:
    - pliku w wiadomości użytkownika;
-   - załącznika ze ścieżką z klienta desktop, w metadanych wiadomości;
+   - załącznika ze ścieżką do obrazu lub pliku pdf z klienta desktop, w
+     metadanych wiadomości;
    - pliku w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
      `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
 4. Plik wymaga modelu z obsługą obrazu, gdy lista modeli pokazuje, że ten model
    przyjmuje typ wejścia pliku (obraz, wideo, audio lub pdf), a model tekstowy
-   go nie przyjmuje. Dla domyślnej pary kierowane są obrazy i wideo. Gdy tura ma
-   taki plik, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
+   go nie przyjmuje. Gdy tura ma taki plik, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
    wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
    pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
@@ -95,7 +96,7 @@ danego kroku zapisuje przed następnym żądaniem. Dlatego obraz od użytkownika
 kieruje już pierwsze żądanie swojej tury. Obraz z narzędzia kieruje żądanie po
 kroku z tym narzędziem.
 
-Prompt tekstowy wysłany jako `steer` do trwającej tury z obrazem zostaje w tej
+Prompt tekstowy wysłany jako `steer` do trwającej tury medialnej zostaje w tej
 turze. Kolejne żądania tej tury nadal używają modelu z obsługą obrazu.
 
 Żądania innych rodzajów, na przykład tytuły i kompakcja, pozostają bez zmian.
@@ -120,17 +121,19 @@ nie podaje ścieżki, więc hook nic nie robi.
 - Zmiana modelu działa tylko w obrębie **jednego dostawcy**. OpenCode uznaje
   model innego dostawcy za niedostępny.
 - Wtyczka sprawdza listę włączonych modeli. Gdy modelu z obsługą obrazu nie ma
-  na tej liście, tury z obrazem zostają na modelu tekstowym. Nie wyłączaj modelu
+  na tej liście, tury medialne zostają na modelu tekstowym. Nie wyłączaj modelu
   z obsługą obrazu.
 - Wtyczka czyta zapisaną sesję przed każdym żądaniem `primary` na modelu
   tekstowym. W długiej sesji ten odczyt trwa dłużej.
-- Obrazy i wideo ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
+- Pliki medialne ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
   wcześniejszego pliku, załącz ten plik ponownie.
 - OpenCode zapisuje jeden znacznik `idle`, gdy sesja kończy pracę. Prompt
-  dodany do kolejki (`queue`) w czasie tury z obrazem działa przed tym
+  dodany do kolejki (`queue`) w czasie tury medialnej działa przed tym
   znacznikiem, więc też używa modelu z obsługą obrazu.
 - Załącznik ze ścieżką z klienta desktop daje modelowi tylko ścieżkę pliku.
-  Model z obsługą obrazu musi przeczytać plik, żeby zobaczyć obraz.
+  Model z obsługą obrazu musi przeczytać plik, żeby go zobaczyć. Narzędzie
+  `read` OpenCode zwraca tylko obrazy i pliki pdf, więc załącznik ze ścieżką do
+  wideo nie kieruje tury.
 - W późniejszej turze na modelu tekstowym OpenCode zamienia starsze obrazy na
   krótką notatkę.
 - Wtyczka nie zmienia modelu wybranego w sesji. `/models` nadal pokazuje model

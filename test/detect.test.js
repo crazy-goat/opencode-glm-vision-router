@@ -93,46 +93,46 @@ describe("currentTurn", () => {
 
 describe("userMessageModalities", () => {
   test("detects a stored image file", () => {
-    expect(userMessageModalities(user({ files: [imageFile()] })).has("image")).toBe(true)
+    expect(userMessageModalities(user({ files: [imageFile()] }))).toEqual(new Set(["image"]))
   })
 
   test("detects an image file by MIME type when the name has no extension", () => {
-    expect(
-      userMessageModalities(user({ files: [imageFile({ name: "Screenshot" })] })).has("image"),
-    ).toBe(true)
+    expect(userMessageModalities(user({ files: [imageFile({ name: "Screenshot" })] }))).toEqual(
+      new Set(["image"]),
+    )
   })
 
   test("ignores a text file", () => {
-    expect(userMessageModalities(user({ files: [textFile()] })).has("image")).toBe(false)
+    expect(userMessageModalities(user({ files: [textFile()] }))).toEqual(new Set())
   })
 
   test("ignores a message without files", () => {
-    expect(userMessageModalities(user()).has("image")).toBe(false)
+    expect(userMessageModalities(user())).toEqual(new Set())
   })
 
   test("detects a desktop path attachment with an image MIME type", () => {
     const attachments = [{ name: "shot", mime: "image/png", path: "/tmp/shot" }]
-    expect(userMessageModalities(user({ metadata: { attachments } })).has("image")).toBe(true)
+    expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set(["image"]))
   })
 
   test("detects a path attachment by extension when the MIME type is missing", () => {
     const attachments = [{ name: "Shot.PNG", path: "/tmp/Shot.PNG" }]
-    expect(userMessageModalities(user({ metadata: { attachments } })).has("image")).toBe(true)
+    expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set(["image"]))
   })
 
   test("ignores a path attachment that is not an image", () => {
     const attachments = [{ name: "notes.txt", mime: "text/plain", path: "/tmp/notes.txt" }]
-    expect(userMessageModalities(user({ metadata: { attachments } })).has("image")).toBe(false)
+    expect(userMessageModalities(user({ metadata: { attachments } }))).toEqual(new Set())
   })
 
   test("ignores messages that are not user messages", () => {
-    expect(userMessageModalities(assistant({ content: [readImage()] })).has("image")).toBe(false)
+    expect(userMessageModalities(assistant({ content: [readImage()] }))).toEqual(new Set())
   })
 })
 
 describe("toolResultModalities", () => {
   test("detects the stored result of an image read", () => {
-    expect(toolResultModalities(assistant({ content: [readImage()] })).has("image")).toBe(true)
+    expect(toolResultModalities(assistant({ content: [readImage()] }))).toEqual(new Set(["image"]))
   })
 
   test("detects an image in a failed tool call that carries content", () => {
@@ -140,11 +140,11 @@ describe("toolResultModalities", () => {
       name: "mcp_capture",
       content: [{ type: "file", uri: PNG_DATA_URL, mime: "image/png" }],
     })
-    expect(toolResultModalities(assistant({ content: [call] })).has("image")).toBe(true)
+    expect(toolResultModalities(assistant({ content: [call] }))).toEqual(new Set(["image"]))
   })
 
   test("ignores tool results without an image", () => {
-    expect(toolResultModalities(assistant({ content: [bashCall()] })).has("image")).toBe(false)
+    expect(toolResultModalities(assistant({ content: [bashCall()] }))).toEqual(new Set())
   })
 
   test("ignores a file that is not an image", () => {
@@ -154,22 +154,22 @@ describe("toolResultModalities", () => {
         { type: "file", uri: "data:application/pdf;base64,JVBERg==", mime: "application/pdf" },
       ],
     })
-    expect(toolResultModalities(assistant({ content: [call] })).has("image")).toBe(false)
+    expect(toolResultModalities(assistant({ content: [call] }))).toEqual(new Set(["pdf"]))
   })
 
   test("ignores messages that are not assistant messages", () => {
-    expect(toolResultModalities(user({ files: [imageFile()] })).has("image")).toBe(false)
+    expect(toolResultModalities(user({ files: [imageFile()] }))).toEqual(new Set())
   })
 })
 
 describe("turnModalities", () => {
   test("is true for an image in the current user message", () => {
-    expect(turnModalities([user({ files: [imageFile()] })]).has("image")).toBe(true)
+    expect(turnModalities([user({ files: [imageFile()] })])).toEqual(new Set(["image"]))
   })
 
   test("is false when the only image is in an earlier turn", () => {
     const messages = [user({ files: [imageFile()] }), assistant(), idle(), user({ text: "thanks" })]
-    expect(turnModalities(messages).has("image")).toBe(false)
+    expect(turnModalities(messages)).toEqual(new Set())
   })
 
   test("stays true when a text prompt joins the running turn", () => {
@@ -178,7 +178,7 @@ describe("turnModalities", () => {
       assistant({ content: [bashCall()], finish: "tool-calls" }),
       user({ text: "also check the logs" }),
     ]
-    expect(turnModalities(messages).has("image")).toBe(true)
+    expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
   test("stays true for a queued prompt that runs before the session stops", () => {
@@ -189,13 +189,13 @@ describe("turnModalities", () => {
       assistant(),
       user({ text: "queued follow-up" }),
     ]
-    expect(turnModalities(messages).has("image")).toBe(true)
+    expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
   test("is false after an interrupted or failed image turn", () => {
     for (const outcome of ["interrupted", "failed"]) {
       const messages = [user({ files: [imageFile()] }), idle(outcome), user({ text: "go on" })]
-      expect(turnModalities(messages).has("image")).toBe(false)
+      expect(turnModalities(messages)).toEqual(new Set())
     }
   })
 
@@ -204,7 +204,7 @@ describe("turnModalities", () => {
       user({ text: "read shot.png" }),
       assistant({ content: [readImage()], finish: "tool-calls" }),
     ]
-    expect(turnModalities(messages).has("image")).toBe(true)
+    expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
   test("ignores tool results when toolResults is false", () => {
@@ -212,11 +212,11 @@ describe("turnModalities", () => {
       user({ text: "read shot.png" }),
       assistant({ content: [readImage()], finish: "tool-calls" }),
     ]
-    expect(turnModalities(messages, { toolResults: false }).has("image")).toBe(false)
+    expect(turnModalities(messages, { toolResults: false })).toEqual(new Set())
   })
 
   test("ignores messages without media", () => {
-    expect(turnModalities([user(), synthetic(), assistant()]).has("image")).toBe(false)
+    expect(turnModalities([user(), synthetic(), assistant()])).toEqual(new Set())
   })
 })
 
@@ -390,14 +390,23 @@ describe("video", () => {
     expect(userMessageModalities(user({ files: [videoFile()] }))).toEqual(new Set(["video"]))
   })
 
-  test("detects a video path attachment by MIME type and by extension", () => {
+  test("ignores a video path attachment, which the read tool cannot return", () => {
     const byMime = [{ name: "clip", mime: "video/mp4", path: "/tmp/clip" }]
     const byExtension = [{ name: "Clip.MOV", path: "/tmp/Clip.MOV" }]
+    expect(userMessageModalities(user({ metadata: { attachments: byMime } }))).toEqual(new Set())
+    expect(userMessageModalities(user({ metadata: { attachments: byExtension } }))).toEqual(
+      new Set(),
+    )
+  })
+
+  test("detects a pdf path attachment by MIME type and by extension", () => {
+    const byMime = [{ name: "doc", mime: "application/pdf", path: "/tmp/doc" }]
+    const byExtension = [{ name: "Doc.PDF", path: "/tmp/Doc.PDF" }]
     expect(userMessageModalities(user({ metadata: { attachments: byMime } }))).toEqual(
-      new Set(["video"]),
+      new Set(["pdf"]),
     )
     expect(userMessageModalities(user({ metadata: { attachments: byExtension } }))).toEqual(
-      new Set(["video"]),
+      new Set(["pdf"]),
     )
   })
 

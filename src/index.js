@@ -9,6 +9,7 @@
  */
 import { Plugin } from "@opencode/plugin"
 import {
+  acceptsInput,
   findModel,
   isRoutable,
   rescueEnabled,
@@ -63,6 +64,9 @@ export default Plugin.define({
         const modalities = turnModalities(messages, { toolResults: rescue })
         if (modalities.size === 0) return
         const models = await ctx.model.list()
+        const textInfo = findModel(models, provider, textModel)
+        // No warning when the text model accepts every file of the turn.
+        if (![...modalities].some((modality) => !acceptsInput(textInfo, modality))) return
         const visionInfo = findModel(models, provider, visionModel)
         if (!visionInfo) {
           warnOnce(
@@ -70,7 +74,6 @@ export default Plugin.define({
           )
           return
         }
-        const textInfo = findModel(models, provider, textModel)
         if (!needsVision(modalities, { textInfo, visionInfo })) return
         event.model = visionModelRef({ model: event.model, visionModel, visionInfo, allowlist })
       } catch (error) {

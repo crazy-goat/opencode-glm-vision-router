@@ -166,6 +166,16 @@ describe("experimental.model.resolve", () => {
     expect(await resolve()).toEqual(TEXT_HIGH)
   })
 
+  test("does not warn when the text model accepts every file of the turn", async () => {
+    const text = modelInfo("opencode-go", "glm-5.3", [], INPUT)
+    const { resolve } = await harness({
+      messages: [user({ files: [videoFile()] })],
+      models: [text],
+    })
+    expect(await resolve()).toEqual(TEXT_HIGH)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   test("ignores tool result images when rescue is false", async () => {
     const messages = [
       user({ text: "read shot.png" }),
@@ -199,7 +209,7 @@ describe("experimental.model.resolve", () => {
   test("keeps the text model and warns once when the vision model is not in the list", async () => {
     const { resolve } = await harness({
       messages: [user({ files: [imageFile()] })],
-      models: [modelInfo("opencode-go", "glm-5.3")],
+      models: [modelInfo("opencode-go", "other-model")],
     })
     expect(await resolve()).toEqual(TEXT_HIGH)
     expect(await resolve()).toEqual(TEXT_HIGH)

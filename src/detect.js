@@ -7,10 +7,11 @@
  */
 
 const IMAGE_MIME = /^image\//i
+// A path attachment reaches the model as text, so the vision model must read
+// the file. The OpenCode read tool returns only images and pdf files.
+const READABLE_MODALITIES = new Set(["image", "pdf"])
 const MODALITY_EXTENSIONS = {
   image: /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i,
-  video: /\.(mp4|m4v|mov|webm|mkv|avi|mpe?g|wmv|flv)$/i,
-  audio: /\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i,
   pdf: /\.pdf$/i,
 }
 
@@ -36,7 +37,7 @@ export function mimeModality(mime) {
 
 function attachmentModality(attachment) {
   const byMime = mimeModality(attachment?.mime)
-  if (byMime) return byMime
+  if (byMime) return READABLE_MODALITIES.has(byMime) ? byMime : undefined
   for (const [modality, extension] of Object.entries(MODALITY_EXTENSIONS)) {
     if (
       extension.test(String(attachment?.name ?? "")) ||
@@ -66,7 +67,8 @@ export function currentTurn(messages) {
  * The modalities of the files in a stored user message. OpenCode sends only
  * the message files to the model. Desktop path attachments reach the model as
  * text and are kept in `metadata.attachments`; routing them lets the vision
- * model read the file in the same turn.
+ * model read the file in the same turn. Only the file types that the read tool
+ * can return (images and pdf files) count there.
  */
 export function userMessageModalities(message) {
   const found = new Set()
