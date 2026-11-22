@@ -80,7 +80,9 @@ zapisuje w sesji.
    - pliku obrazu w wiadomości użytkownika;
    - załącznika ze ścieżką do obrazu z klienta desktop, w metadanych wiadomości;
    - pliku obrazu w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
-     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
+     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem;
+   - ścieżki pliku obrazu w powiadomieniu skryptu Code Mode, który działał w
+     tle. Opcja `rescue` steruje także tym sprawdzeniem.
 4. Gdy tura ma obraz, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
    wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
    pozwala.
@@ -116,6 +118,13 @@ tekstowy, który zawiera tylko URI. Jeśli `output` albo część tekstowa to
 dokładnie jeden URI `file://` z rozszerzeniem obrazu, hook zamienia URI na
 ścieżkę i dodaje instrukcję odczytu. Hook ignoruje inny tekst, URI z zapytaniem
 lub fragmentem oraz URI z hostem innym niż `localhost`.
+
+Skrypt Code Mode, który przechodzi do tła, zapisuje swoje pliki obrazów.
+OpenCode wypisuje w powiadomieniu tylko ścieżki plików, bez obrazów. Wtyczka
+kieruje następne żądanie do modelu z obsługą obrazu, bo ten model może odczytać
+pliki narzędziem `read`. Model nie widzi obrazów, zanim je odczyta. Skrypt, który
+działa na pierwszym planie, zwraca obrazy w wyniku, więc nie wymaga osobnego
+sprawdzenia.
 
 ## Ograniczenia
 

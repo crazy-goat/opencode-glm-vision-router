@@ -144,6 +144,25 @@ export const synthetic = (text = "A background job finished.") => {
   return stored({ id: `msg_synthetic_${n}`, type: "synthetic", text, time: time(n) })
 }
 
+/**
+ * The synthetic message of a Code Mode job that ran in the background
+ * (OpenCode 2.3.2, packages/core/src/codemode/job.ts, `notice`). The job saves
+ * its files and lists their paths after the script output.
+ */
+export const codemodeNotice = ({ paths = [], output = "done", state = "completed" } = {}) => {
+  const n = next()
+  const id = `job_${n}`
+  const body = [output, ...paths].join("\n")
+  return stored({
+    id: `msg_synthetic_${n}`,
+    type: "synthetic",
+    description: "Code Mode script",
+    text: `<codemode id="${id}" state="${state}">\n${body}\n</codemode>`,
+    metadata: { source: "codemode", jobID: id, state },
+    time: time(n),
+  })
+}
+
 /** An encoded model list entry, after the OpenCode schema accepts it. */
 export const modelInfo = (providerID, id, variants = []) =>
   encodeModel({
