@@ -2,7 +2,8 @@
  * Stored session messages and model list entries in the encoded form that
  * OpenCode 2.3.2 returns to a plugin. Each message builder checks its result
  * with the OpenCode schema in strict mode, so an unknown or misspelled key
- * fails, and a fixture cannot drift from the real shape.
+ * fails. The schema does not check the keys inside `metadata`, so `user()`
+ * checks the keys of the desktop path attachments itself.
  */
 import { Model } from "@opencode/schema/model"
 import { SessionMessage } from "@opencode/schema/session-message"
@@ -29,6 +30,24 @@ export function stored(message) {
   return message
 }
 
+const METADATA_KEYS = new Set(["attachments"])
+const ATTACHMENT_KEYS = new Set(["name", "mime", "path"])
+
+/**
+ * The schema accepts any key inside `metadata`. The fixtures use only the
+ * desktop path attachments, so any other key is a typo.
+ */
+function checkMetadata(metadata) {
+  for (const key of Object.keys(metadata)) {
+    if (!METADATA_KEYS.has(key)) throw new Error(`Unknown metadata key: ${key}`)
+  }
+  for (const attachment of metadata.attachments ?? []) {
+    for (const key of Object.keys(attachment)) {
+      if (!ATTACHMENT_KEYS.has(key)) throw new Error(`Unknown attachment key: ${key}`)
+    }
+  }
+}
+
 /** A prompt file as OpenCode stores it after admission. */
 export const imageFile = ({ mime = "image/png", name = "shot.png" } = {}) => ({
   data: PNG_BASE64,
@@ -45,6 +64,7 @@ export const textFile = () => ({
 })
 
 export const user = ({ text = "look at this", files, metadata } = {}) => {
+  if (metadata) checkMetadata(metadata)
   const n = next()
   return stored({
     id: `msg_user_${n}`,

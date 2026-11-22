@@ -39,6 +39,13 @@ describe("fixtures", () => {
     ).toThrow()
   })
 
+  test("user() rejects a misspelled key in the desktop path attachments", () => {
+    const attachment = { name: "a.png", mime: "image/png", path: "/tmp/a.png" }
+    expect(() => user({ metadata: { attachments: [{ ...attachment, nme: "a.png" }] } })).toThrow()
+    expect(() => user({ metadata: { attachment: [attachment] } })).toThrow()
+    expect(() => user({ metadata: { attachments: [attachment] } })).not.toThrow()
+  })
+
   test("the OpenCode schema rejects a misspelled message key", () => {
     expect(() =>
       stored({ id: "msg_x", type: "user", text: "x", file: [imageFile()], time: { created: 1 } }),

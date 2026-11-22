@@ -134,11 +134,12 @@ export function screenshotImage(result) {
   return { inline, paths }
 }
 
-/** Instruction added when a screenshot tool saves the image only to a file. */
 /**
- * The content of a tool result as a list. OpenCode normalizes the content the
- * same way, but only after all `execute.after` hooks: a string becomes one
- * text item, and an empty or missing content becomes the output as text.
+ * The content of a tool result as a list, with the rules of OpenCode: a
+ * string becomes one text item, and an empty or missing content becomes the
+ * output as text. OpenCode normalizes the content before the `execute.after`
+ * hooks and again after all of them, but not between them. So an earlier hook
+ * can leave a string or an empty content.
  */
 export function toolContent(result) {
   const content = result?.content
@@ -156,6 +157,7 @@ function stringify(value) {
   }
 }
 
+/** Instruction added when a screenshot tool saves the image only to a file. */
 export function visionReadContent(paths) {
   return `Screenshot saved to: ${paths.join(", ")}. Read the file to view the image.`
 }

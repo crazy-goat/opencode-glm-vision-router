@@ -136,9 +136,9 @@ bash bin/lint.sh
 ```
 
 Repozytorium stosuje [standard repozytoriów
-crazy-goat](https://github.com/crazy-goat/.github). Kod, commity i dokumentację
-pisz po angielsku. Używaj Conventional Commits. Dla zmian widocznych dla
-użytkownika dodaj wpis w `CHANGELOG.md`.
+crazy-goat](https://github.com/crazy-goat/.github). Wszystko pisz po angielsku.
+Używaj Conventional Commits. Dla zmian widocznych dla użytkownika dodaj wpis w
+`CHANGELOG.md`.
 
 ## Licencja
 
