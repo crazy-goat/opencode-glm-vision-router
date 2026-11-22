@@ -147,7 +147,7 @@ describe("toolResultModalities", () => {
     expect(toolResultModalities(assistant({ content: [bashCall()] }))).toEqual(new Set())
   })
 
-  test("ignores a file that is not an image", () => {
+  test("reports a pdf file as the pdf modality, not as an image", () => {
     const call = toolCall({
       name: "read",
       content: [
@@ -163,16 +163,16 @@ describe("toolResultModalities", () => {
 })
 
 describe("turnModalities", () => {
-  test("is true for an image in the current user message", () => {
+  test("collects the image of the current user message", () => {
     expect(turnModalities([user({ files: [imageFile()] })])).toEqual(new Set(["image"]))
   })
 
-  test("is false when the only image is in an earlier turn", () => {
+  test("is empty when the only image is in an earlier turn", () => {
     const messages = [user({ files: [imageFile()] }), assistant(), idle(), user({ text: "thanks" })]
     expect(turnModalities(messages)).toEqual(new Set())
   })
 
-  test("stays true when a text prompt joins the running turn", () => {
+  test("keeps the image when a text prompt joins the running turn", () => {
     const messages = [
       user({ files: [imageFile()] }),
       assistant({ content: [bashCall()], finish: "tool-calls" }),
@@ -181,7 +181,7 @@ describe("turnModalities", () => {
     expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
-  test("stays true for a queued prompt that runs before the session stops", () => {
+  test("keeps the image for a queued prompt that runs before the session stops", () => {
     // OpenCode writes one idle marker per busy period, not one per prompt.
     const messages = [
       user({ files: [imageFile()] }),
@@ -192,14 +192,14 @@ describe("turnModalities", () => {
     expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
-  test("is false after an interrupted or failed image turn", () => {
+  test("is empty after an interrupted or failed image turn", () => {
     for (const outcome of ["interrupted", "failed"]) {
       const messages = [user({ files: [imageFile()] }), idle(outcome), user({ text: "go on" })]
       expect(turnModalities(messages)).toEqual(new Set())
     }
   })
 
-  test("is true for an image in a tool result of the current turn", () => {
+  test("collects the image of a tool result of the current turn", () => {
     const messages = [
       user({ text: "read shot.png" }),
       assistant({ content: [readImage()], finish: "tool-calls" }),
@@ -207,7 +207,7 @@ describe("turnModalities", () => {
     expect(turnModalities(messages)).toEqual(new Set(["image"]))
   })
 
-  test("ignores tool results when toolResults is false", () => {
+  test("is empty for a tool result image when toolResults is false", () => {
     const messages = [
       user({ text: "read shot.png" }),
       assistant({ content: [readImage()], finish: "tool-calls" }),

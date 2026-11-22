@@ -76,7 +76,7 @@ zapisuje w sesji.
    `ctx.session.context()`.
 2. Wtyczka bierze wiadomości po ostatnim znaczniku `idle`. Te wiadomości to
    bieżąca tura. OpenCode zapisuje ten znacznik, gdy sesja kończy pracę.
-3. Wtyczka szuka plików multimedialnych w bieżącej turze:
+3. Wtyczka szuka plików medialnych w bieżącej turze:
    - pliku w wiadomości użytkownika;
    - załącznika ze ścieżką do obrazu lub pliku pdf z klienta desktop, w
      metadanych wiadomości;
@@ -84,9 +84,9 @@ zapisuje w sesji.
      `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
 4. Plik wymaga modelu z obsługą obrazu, gdy lista modeli pokazuje, że ten model
    przyjmuje typ wejścia pliku (obraz, wideo, audio lub pdf), a model tekstowy
-   go nie przyjmuje. Gdy tura ma taki plik, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
-   wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
-   pozwala.
+   go nie przyjmuje. Gdy tura ma taki plik, żądanie używa modelu z obsługą
+   obrazu. Wtyczka przenosi wariant tylko wtedy, gdy ten model go ma i gdy
+   opcja `variants` na to pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
    nie uda, żądanie zostaje na wybranym modelu. Wtyczka raz zapisuje
    ostrzeżenie w logu.
