@@ -60,7 +60,7 @@ Set the options in the plugin entry of `opencode.jsonc`:
 | `vision`          | string   | `"glm-5.3-flash"` | The model with image input. It must be in the model list of `provider`.                                                                                                |
 | `variants`        | string[] | not set           | The variants that the plugin carries over to the vision model. If not set, it carries over each variant that the vision model has.                                     |
 | `rescue`          | boolean  | `true`            | Route the request after a tool result with an image. If `false`, only user images route, and `screenshotTools` has no effect.                                          |
-| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. If the output gives the image path (see How it works), the plugin adds a read instruction to their result. |
+| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. If the result gives the image path (see How it works), the plugin adds a read instruction to their result. |
 
 ## How it works
 
@@ -111,7 +111,7 @@ An MCP `resource_link` is the exception. OpenCode turns it into a text result
 that holds only the URI. If the output or a text part is exactly one `file://`
 URI with an image extension, the hook converts the URI to a path and adds the
 read instruction. The hook ignores other text, URIs with a query or a fragment,
-and URIs with a host.
+and URIs with a host other than `localhost`.
 
 ## Limitations
 

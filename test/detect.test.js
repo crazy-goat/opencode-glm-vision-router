@@ -351,6 +351,10 @@ describe("screenshotImage", () => {
     expect(screenshotImage(result)).toEqual({ inline: false, paths: ["/tmp/a.webp"] })
   })
 
+  test("accepts an empty host or localhost", () => {
+    expect(screenshotImage({ output: "file://localhost/tmp/a.png" }).paths).toEqual(["/tmp/a.png"])
+  })
+
   test("reads the same file URI once", () => {
     const result = {
       output: "file:///tmp/a.png",

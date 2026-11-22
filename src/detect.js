@@ -153,6 +153,7 @@ function imageFileUriPath(text) {
   if (!/^file:\/\/\S+$/i.test(value)) return undefined
   try {
     const url = new URL(value)
+    if (url.hostname && url.hostname !== "localhost") return undefined
     if (url.search || url.hash || !IMAGE_EXTENSION.test(url.pathname)) return undefined
     decodeURIComponent(url.pathname) // rejects a malformed escape
     return fileURLToPath(url)
