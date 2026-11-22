@@ -308,6 +308,31 @@ describe("execute.after", () => {
     ])
   })
 
+  test("adds a read instruction for an MCP resource_link file URI", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    event.result = {
+      output: "file:///tmp/screen%20one.png",
+      content: [{ type: "text", text: "file:///tmp/screen%20one.png" }],
+    }
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([
+      { type: "text", text: "file:///tmp/screen%20one.png" },
+      {
+        type: "text",
+        text: "Screenshot saved to: /tmp/screen one.png. Read the file to view the image.",
+      },
+    ])
+  })
+
+  test("ignores plain text that only mentions a file URI", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    event.result = { output: "Saved to file:///tmp/screen.png", content: [] }
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([])
+  })
+
   test("leaves a screenshot with an inline image unchanged", async () => {
     const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
     const event = fileOnly()

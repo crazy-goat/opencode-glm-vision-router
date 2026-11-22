@@ -21,6 +21,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   vision model and sees the stored image.
 - A read instruction for screenshot tools that save the image only to a file.
   The `screenshotTools` option lists these tools.
+- A read instruction for an MCP `resource_link` result. The `screenshotTools`
+  hook accepts an output or text part that is exactly one `file://` URI with an
+  image extension.
 - Unit tests for detection and routing decisions.
 - An optional end-to-end harness, `bash bin/e2e.sh`. It runs an isolated
   `opencode serve` with a mock provider and checks the routing scenarios.
