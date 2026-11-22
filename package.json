@@ -1,0 +1,45 @@
+{
+  "name": "@crazy-goat/opencode-glm-vision-router",
+  "version": "0.1.0",
+  "description": "OpenCode V2 plugin that routes image turns from a text-only GLM 5.3 model to the vision-capable GLM 5.3 Flash model",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "glm",
+    "vision",
+    "model-router"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/crazy-goat/opencode-glm-vision-router.git"
+  },
+  "homepage": "https://github.com/crazy-goat/opencode-glm-vision-router#readme",
+  "bugs": {
+    "url": "https://github.com/crazy-goat/opencode-glm-vision-router/issues"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "lint": "bash bin/lint.sh"
+  },
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "prettier": "^3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+findings.md
+review.md
+.env.worktree
+.DS_Store
