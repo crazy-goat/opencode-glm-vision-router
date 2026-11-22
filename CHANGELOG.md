@@ -13,3 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Configurable `provider`, `text`, `vision` and `variants` options.
 - Image detection in prompt attachments and in tool results.
 - Unit tests for detection and routing decisions.
+
+### Changed
+
+- State OpenCode Go as the default setup in the README. Remove the
+  alternative-provider configuration example.
