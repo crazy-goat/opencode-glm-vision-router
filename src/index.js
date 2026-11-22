@@ -9,12 +9,14 @@
  */
 import { Plugin } from "@opencode/plugin"
 import {
+  acceptsInput,
   findModel,
   isRoutable,
   rescueEnabled,
   screenshotImage,
   toolContent,
-  turnHasImage,
+  needsVision,
+  turnModalities,
   visionModelRef,
   visionReadContent,
 } from "./detect.js"
@@ -64,18 +66,24 @@ export default Plugin.define({
         // OpenCode stores a new prompt before it resolves the model for the
         // first step, and the tool results of a step before the next step.
         const messages = await ctx.session.context({ sessionID: event.sessionID })
-        if (!turnHasImage(messages, { toolResults: rescue })) return
-        const visionInfo = findModel(await ctx.model.list(), provider, visionModel)
+        const modalities = turnModalities(messages, { toolResults: rescue })
+        if (modalities.size === 0) return
+        const models = await ctx.model.list()
+        const textInfo = findModel(models, provider, textModel)
+        // No warning when the text model accepts every file of the turn.
+        if (![...modalities].some((modality) => !acceptsInput(textInfo, modality))) return
+        const visionInfo = findModel(models, provider, visionModel)
         if (!visionInfo) {
           warnOnce(
-            `${provider}/${visionModel} is not in the model list. Image turns stay on ${provider}/${textModel}.`,
+            `${provider}/${visionModel} is not in the model list. Media turns stay on ${provider}/${textModel}.`,
           )
           return
         }
+        if (!needsVision(modalities, { textInfo, visionInfo })) return
         event.model = visionModelRef({ model: event.model, visionModel, visionInfo, allowlist })
       } catch (error) {
         // A failed check must not fail the request, so the selected model stays.
-        warnOnce("The image check failed. The request keeps the selected model.", error)
+        warnOnce("The media check failed. The request keeps the selected model.", error)
       }
     })
 

@@ -1,5 +1,5 @@
 /**
- * Image detection and routing helpers.
+ * Media detection and routing helpers.
  *
  * This module imports nothing from OpenCode, so the decisions can be unit
  * tested without a running server. The helpers read stored session messages
@@ -9,11 +9,47 @@
 import { URL, fileURLToPath } from "node:url"
 
 const IMAGE_MIME = /^image\//i
-const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i
+// A path attachment reaches the model as text, so the vision model must read
+// the file. The OpenCode read tool returns only images and pdf files.
+const READABLE_MODALITIES = new Set(["image", "pdf"])
+const MODALITY_EXTENSIONS = {
+  image: /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i,
+  pdf: /\.pdf$/i,
+}
+const IMAGE_EXTENSION = MODALITY_EXTENSIONS.image
 
 /** True when a MIME type names an image. */
 export function isImageMime(mime) {
   return IMAGE_MIME.test(String(mime ?? "").trim())
+}
+
+/**
+ * The input modality of a MIME type: "image", "audio", "video" or "pdf", or
+ * undefined. The rules are the ones OpenCode uses to decide which files a
+ * model can read.
+ */
+export function mimeModality(mime) {
+  const value = String(mime ?? "")
+    .trim()
+    .toLowerCase()
+  for (const modality of ["image", "audio", "video"]) {
+    if (value.startsWith(`${modality}/`)) return modality
+  }
+  return value === "application/pdf" ? "pdf" : undefined
+}
+
+function attachmentModality(attachment) {
+  const byMime = mimeModality(attachment?.mime)
+  if (byMime) return READABLE_MODALITIES.has(byMime) ? byMime : undefined
+  for (const [modality, extension] of Object.entries(MODALITY_EXTENSIONS)) {
+    if (
+      extension.test(String(attachment?.name ?? "")) ||
+      extension.test(String(attachment?.path ?? ""))
+    ) {
+      return modality
+    }
+  }
+  return undefined
 }
 
 /**
@@ -31,35 +67,39 @@ export function currentTurn(messages) {
 }
 
 /**
- * True when a stored user message carries an image. OpenCode sends only the
- * message files to the model. Desktop path attachments reach the model as
+ * The modalities of the files in a stored user message. OpenCode sends only
+ * the message files to the model. Desktop path attachments reach the model as
  * text and are kept in `metadata.attachments`; routing them lets the vision
- * model read the file in the same turn.
+ * model read the file in the same turn. Only the file types that the read tool
+ * can return (images and pdf files) count there.
  */
-export function userMessageHasImage(message) {
-  if (message?.type !== "user") return false
+export function userMessageModalities(message) {
+  const found = new Set()
+  if (message?.type !== "user") return found
   const files = Array.isArray(message.files) ? message.files : []
-  if (files.some((file) => isImageMime(file?.mime))) return true
+  for (const file of files) found.add(mimeModality(file?.mime))
   const attachments = Array.isArray(message.metadata?.attachments)
     ? message.metadata.attachments
     : []
-  return attachments.some(
-    (attachment) =>
-      isImageMime(attachment?.mime) ||
-      IMAGE_EXTENSION.test(String(attachment?.name ?? "")) ||
-      IMAGE_EXTENSION.test(String(attachment?.path ?? "")),
-  )
+  for (const attachment of attachments) found.add(attachmentModality(attachment))
+  found.delete(undefined)
+  return found
 }
 
-/** True when a stored assistant message holds a tool result with an image file. */
-export function toolResultHasImage(message) {
-  if (message?.type !== "assistant") return false
+/** The modalities of the files in the tool results of a stored assistant message. */
+export function toolResultModalities(message) {
+  const found = new Set()
+  if (message?.type !== "assistant") return found
   const parts = Array.isArray(message.content) ? message.content : []
-  return parts.some((part) => {
-    if (part?.type !== "tool") return false
+  for (const part of parts) {
+    if (part?.type !== "tool") continue
     const content = Array.isArray(part.state?.content) ? part.state.content : []
-    return content.some((item) => item?.type === "file" && isImageMime(item.mime))
-  })
+    for (const item of content) {
+      if (item?.type === "file") found.add(mimeModality(item.mime))
+    }
+  }
+  found.delete(undefined)
+  return found
 }
 
 const CODEMODE_NOTICE =
@@ -67,31 +107,56 @@ const CODEMODE_NOTICE =
 const FILE_LOCATION = /^(\/|file:\/\/|[A-Za-z]:[\\/])/
 
 /**
- * True when a stored message is the notice of a Code Mode job that ran in the
- * background, and the notice lists the path of an image file. OpenCode saves
+ * The modalities of a stored message that is the notice of a Code Mode job
+ * that ran in the background: "image" when the notice lists the path of an
+ * image file, else none. OpenCode saves
  * the files of such a job and lists only their paths, one per line, in a
  * synthetic message. The check needs the `codemode` source in the metadata
  * and the `<codemode>` text wrapper, so other text never matches.
  */
-export function codemodeNoticeHasImage(message) {
-  if (message?.type !== "synthetic" || message.metadata?.source !== "codemode") return false
+export function codemodeNoticeModalities(message) {
+  const found = new Set()
+  if (message?.type !== "synthetic" || message.metadata?.source !== "codemode") return found
   const match = CODEMODE_NOTICE.exec(String(message.text ?? ""))
-  if (!match) return false
-  return match[1]
+  if (!match) return found
+  const hasImage = match[1]
     .split("\n")
     .some((line) => FILE_LOCATION.test(line) && IMAGE_EXTENSION.test(line.trim()))
+  if (hasImage) found.add("image")
+  return found
 }
 
 /**
- * True when the current turn carries an image: in a user message, or, when
- * `toolResults` is true, in a tool result or a Code Mode job notice.
+ * The modalities of the files in the current turn: in user messages, and,
+ * when `toolResults` is true, in tool results and Code Mode job notices.
  */
-export function turnHasImage(messages, { toolResults = true } = {}) {
-  return currentTurn(messages).some(
-    (message) =>
-      userMessageHasImage(message) ||
-      (toolResults && (toolResultHasImage(message) || codemodeNoticeHasImage(message))),
-  )
+export function turnModalities(messages, { toolResults = true } = {}) {
+  const found = new Set()
+  for (const message of currentTurn(messages)) {
+    for (const modality of userMessageModalities(message)) found.add(modality)
+    if (!toolResults) continue
+    for (const modality of toolResultModalities(message)) found.add(modality)
+    for (const modality of codemodeNoticeModalities(message)) found.add(modality)
+  }
+  return found
+}
+
+/** True when a model list entry accepts a modality as input. */
+export function acceptsInput(info, modality) {
+  const input = Array.isArray(info?.capabilities?.input) ? info.capabilities.input : []
+  return input.some((item) => String(item).startsWith(modality))
+}
+
+/**
+ * True when the turn needs the vision model: a file has a modality that the
+ * vision model accepts and the text model does not. An unknown text model
+ * accepts nothing.
+ */
+export function needsVision(modalities, { textInfo, visionInfo }) {
+  for (const modality of modalities) {
+    if (acceptsInput(visionInfo, modality) && !acceptsInput(textInfo, modality)) return true
+  }
+  return false
 }
 
 /** True when the router applies: a primary request on the configured text model. */

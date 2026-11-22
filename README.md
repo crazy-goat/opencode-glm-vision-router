@@ -1,12 +1,13 @@
 # @crazy-goat/opencode-glm-vision-router
 
-An [OpenCode](https://opencode.ai) V2 plugin that routes image turns from a
+An [OpenCode](https://opencode.ai) V2 plugin that routes media turns from a
 text-only GLM 5.3 model to the vision-capable GLM 5.3 Flash model of the same
-provider.
+provider. A media turn has a file that only the vision model accepts. For the
+default pair, these files are images and videos.
 
 The rewrite applies to one request at a time. The session keeps showing the
 selected model. The assistant message records the model actually used. The
-next turn without an image uses the selected model again.
+next turn without media uses the selected model again.
 
 ## Requirements
 
@@ -32,7 +33,7 @@ report a cost of zero and consume the per-5-hour request allowance instead.
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-When `opencode-go/glm-5.3` handles a turn with an image, the plugin sends the
+When `opencode-go/glm-5.3` handles a media turn, the plugin sends the
 requests of that turn to `opencode-go/glm-5.3-flash`. Other models stay
 unchanged. The default setup needs no options.
 
@@ -73,16 +74,19 @@ for the session.
    `ctx.session.context()`.
 2. The plugin takes the messages after the last `idle` marker. These messages
    are the current turn. OpenCode writes the marker when the session stops.
-3. The plugin looks for an image in the current turn:
-   - an image file in a user message;
-   - an image path attachment from a desktop client, in the message metadata;
-   - an image file in a tool result, for example from a `read` of an image or
-     from a screenshot tool. The `rescue` option controls this check;
+3. The plugin looks for media files in the current turn:
+   - a file in a user message;
+   - an image or pdf path attachment from a desktop client, in the message
+     metadata;
+   - a file in a tool result, for example from a `read` of an image or from a
+     screenshot tool. The `rescue` option controls this check;
    - an image file path in the notice of a Code Mode script that ran in the
      background. The `rescue` option controls this check too.
-4. If the turn has an image, the request uses the vision model. The plugin
-   carries over the variant only if the vision model has it and `variants`
-   allows it.
+4. A file needs the vision model if the model list shows that the vision model
+   accepts its input type (image, video, audio or pdf) and the text model does
+   not. If the turn has such a file, the request uses the vision model. The
+   plugin carries over the variant only if the vision model has it and
+   `variants` allows it.
 5. If the vision model is not in the model list, or if the check fails, the
    request keeps the selected model. The plugin writes a warning to the log
    once for each different cause.
@@ -92,7 +96,7 @@ tool results of a step before the next request. Because of this order, a user
 image routes the first request of its turn. A tool image routes the request
 after the tool step.
 
-A text prompt that you steer into a running image turn stays in that turn. The
+A text prompt that you steer into a running media turn stays in that turn. The
 next requests of the turn still use the vision model.
 
 Requests of other kinds, such as titles and compaction, stay unchanged.
@@ -130,17 +134,18 @@ it needs no special check.
 - A rewrite can only select another model from the **same provider**. A model
   from another provider resolves as unavailable.
 - The plugin checks the list of enabled models. If the vision model is not in
-  this list, image turns stay on the text model. Do not disable the vision
+  this list, media turns stay on the text model. Do not disable the vision
   model.
 - The plugin reads the stored session before each `primary` request on the text
   model. In a long session, this read takes more time.
-- Images in older turns do not route. If a new turn is about an earlier image,
-  attach the image again.
+- Media files in older turns do not route. If a new turn is about an earlier
+  file, attach the file again.
 - OpenCode writes one `idle` marker when the session stops. A prompt that you
-  queue during an image turn runs before that marker, so it also uses the
+  queue during a media turn runs before that marker, so it also uses the
   vision model.
 - A desktop path attachment gives the model only the file path. The vision model
-  must read the file to see the image.
+  must read the file to see it. The OpenCode read tool returns only images and
+  pdf files, so a video path attachment does not route.
 - In a later turn on the text model, OpenCode replaces older images with a short
   note.
 - The plugin does not change the session's selected model. `/models` still
