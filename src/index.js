@@ -10,6 +10,9 @@ import {
   attachmentIsImage,
   attachmentsOf,
   fileIsImage,
+  readTargetIsImage,
+  rescueContent,
+  rescueEnabled,
   resolveModel,
   toolResultHasImage,
   userTurnHasImage,
@@ -20,10 +23,13 @@ export const DEFAULTS = {
   text: "glm-5.3",
   vision: "glm-5.3-flash",
   variants: ["low", "high", "max"],
+  rescue: true,
 }
 
 /** Per-session state. A prompt hook owns each new user turn. */
 const imageTurns = new Map()
+/** Model that serves the current primary request of each session. */
+const resolvedModels = new Map()
 
 export default Plugin.define({
   id: "glm-vision-router",
@@ -35,6 +41,7 @@ export default Plugin.define({
     const sharedVariants = new Set(
       Array.isArray(options.variants) ? options.variants : DEFAULTS.variants,
     )
+    const rescue = rescueEnabled(options.rescue)
 
     await ctx.session.hook("prompt", (event) => {
       const files = event.prompt.files ?? []
@@ -64,6 +71,23 @@ export default Plugin.define({
         sharedVariants,
         hasImage: imageTurns.get(event.sessionID) === true,
       })
+      if (event.kind === "primary" && event.model) {
+        resolvedModels.set(event.sessionID, event.model.id)
+      }
     })
+
+    // A text-only model cannot display an image that a tool returns. Replace
+    // such a read result with a pointer before it reaches the model, and arm
+    // the image flag so the next request of the turn resolves to the vision
+    // model. The hook runs between requests, before the next model.resolve.
+    if (rescue) {
+      await ctx.tool.hook("execute.after", (event) => {
+        if (event.tool !== "read" || event.status !== "completed") return
+        if (resolvedModels.get(event.sessionID) !== textModel) return
+        if (!readTargetIsImage(event.input)) return
+        imageTurns.set(event.sessionID, true)
+        event.result.content = rescueContent(String(event.input?.path ?? ""), visionModel)
+      })
+    }
   },
 })

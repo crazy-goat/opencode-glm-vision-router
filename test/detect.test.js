@@ -5,6 +5,9 @@ import {
   fileIsImage,
   partIsImage,
   partsOf,
+  readTargetIsImage,
+  rescueContent,
+  rescueEnabled,
   resolveModel,
   toolResultHasImage,
   userTurnHasImage,
@@ -182,6 +185,55 @@ describe("toolResultHasImage", () => {
 
   test("returns false without images", () => {
     expect(toolResultHasImage([{ role: "user", content: [{ type: "text" }] }])).toBe(false)
+  })
+})
+
+describe("readTargetIsImage", () => {
+  test("accepts a PNG path", () => {
+    expect(readTargetIsImage({ path: "/tmp/shot.png" })).toBe(true)
+  })
+
+  test("accepts a JPEG path with uppercase extension", () => {
+    expect(readTargetIsImage({ path: "/tmp/PHOTO.JPG" })).toBe(true)
+  })
+
+  test("accepts a data URL", () => {
+    expect(readTargetIsImage({ path: "data:image/png;base64,AAAA" })).toBe(true)
+  })
+
+  test("rejects a text file", () => {
+    expect(readTargetIsImage({ path: "/tmp/notes.txt" })).toBe(false)
+  })
+
+  test("rejects an empty input", () => {
+    expect(readTargetIsImage(undefined)).toBe(false)
+  })
+})
+
+describe("rescueContent", () => {
+  test("names the path and the vision model", () => {
+    const text = rescueContent("/tmp/shot.png", "glm-5.3-flash")
+    expect(text).toContain("/tmp/shot.png")
+    expect(text).toContain("glm-5.3-flash")
+    expect(text).toContain("Read the file again")
+  })
+})
+
+describe("rescueEnabled", () => {
+  test("is on by default", () => {
+    expect(rescueEnabled(undefined)).toBe(true)
+  })
+
+  test("is on when true", () => {
+    expect(rescueEnabled(true)).toBe(true)
+  })
+
+  test("is off only when explicitly false", () => {
+    expect(rescueEnabled(false)).toBe(false)
+  })
+
+  test("is on for any other value", () => {
+    expect(rescueEnabled("no")).toBe(true)
   })
 })
 
