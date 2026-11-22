@@ -136,7 +136,13 @@ gives no path, so the hook does nothing.
 bun install
 bun test
 bash bin/lint.sh
+bash bin/e2e.sh
 ```
+
+`bash bin/e2e.sh` is optional. It starts an isolated `opencode serve` with a mock
+provider and checks the routing in real OpenCode. It needs the `opencode` binary.
+Set `OPENCODE_BIN` to choose it. Without a binary, the script prints `skipped`.
+CI does not run it.
 
 The repository follows the [crazy-goat repository
 standard](https://github.com/crazy-goat/.github). Write everything in English.

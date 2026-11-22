@@ -8,6 +8,16 @@
 | Unit tests            | `bun test`               |
 | Lint and format check | `bash bin/lint.sh`       |
 | Auto-fix formatting   | `bash bin/lint.sh --fix` |
+| End-to-end harness    | `bash bin/e2e.sh`        |
+
+The end-to-end harness is optional. CI does not run it. It starts a mock OpenAI-compatible
+provider and an isolated `opencode serve` that loads the plugin from the working tree. It
+checks the model of each request in six scenarios: image upload, next text turn, image
+read, steered prompt, queued prompt and auxiliary requests. It prints a JSON summary and
+exits non-zero if a check fails. It prints `skipped` and exits 0 if no `opencode` binary is
+found. Set `OPENCODE_BIN` to choose the binary. The child process gets a temporary HOME,
+TMPDIR and XDG directories, so it never reads your config or sessions. Set `E2E_DEBUG=1` to
+print the server log.
 
 `bin/lint.sh` runs ESLint, Prettier and the unit tests. It runs every step even
 when one fails, and exits non-zero if any step failed. CI runs the same script
@@ -23,6 +33,8 @@ in the `ci-ok` job.
 | `test/index.test.js`  | Unit tests for the hooks in `src/index.js`, with a fake OpenCode context |
 | `test/fixtures.js`    | Stored message and model fixtures, checked with the OpenCode schema      |
 | `bin/lint.sh`         | The repository lint contract                                             |
+| `bin/e2e.sh`          | Optional end-to-end harness, starts `test/e2e/run.mjs`                   |
+| `test/e2e/run.mjs`    | Mock provider, isolated `opencode serve` and the six scenarios           |
 | `docs/workflow.md`    | Development process                                                      |
 
 There is no build step. The package ships plain ESM JavaScript.

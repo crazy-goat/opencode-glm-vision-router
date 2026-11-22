@@ -139,7 +139,13 @@ nie podaje ścieżki, więc hook nic nie robi.
 bun install
 bun test
 bash bin/lint.sh
+bash bin/e2e.sh
 ```
+
+`bash bin/e2e.sh` jest opcjonalny. Skrypt uruchamia odizolowany `opencode serve` z
+provider-em testowym (mock) i sprawdza routing w prawdziwym OpenCode. Skrypt
+potrzebuje pliku `opencode`. Ustaw `OPENCODE_BIN`, aby wskazać plik. Bez pliku
+skrypt wypisuje `skipped`. CI nie uruchamia tego skryptu.
 
 Repozytorium stosuje [standard repozytoriów
 crazy-goat](https://github.com/crazy-goat/.github). Wszystko pisz po angielsku.
