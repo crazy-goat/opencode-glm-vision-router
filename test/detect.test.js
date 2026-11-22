@@ -44,6 +44,8 @@ describe("fixtures", () => {
     expect(() => user({ metadata: { attachments: [{ ...attachment, nme: "a.png" }] } })).toThrow()
     expect(() => user({ metadata: { attachment: [attachment] } })).toThrow()
     expect(() => user({ metadata: { attachments: [attachment] } })).not.toThrow()
+    const presentation = { displayText: "look at this", comments: [], attachments: [attachment] }
+    expect(() => user({ metadata: presentation })).not.toThrow()
   })
 
   test("the OpenCode schema rejects a misspelled message key", () => {

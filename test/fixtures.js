@@ -30,12 +30,15 @@ export function stored(message) {
   return message
 }
 
-const METADATA_KEYS = new Set(["attachments"])
+// The desktop presentation metadata (OpenCode 2.3.2,
+// packages/app/src/composer/comment-note.ts): displayText, comments and
+// attachments, each attachment with name, mime and path.
+const METADATA_KEYS = new Set(["displayText", "comments", "attachments"])
 const ATTACHMENT_KEYS = new Set(["name", "mime", "path"])
 
 /**
- * The schema accepts any key inside `metadata`. The fixtures use only the
- * desktop path attachments, so any other key is a typo.
+ * The schema accepts any key inside `metadata`. The fixtures use the desktop
+ * presentation metadata, so a key outside that shape is a typo.
  */
 function checkMetadata(metadata) {
   for (const key of Object.keys(metadata)) {
