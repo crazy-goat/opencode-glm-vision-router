@@ -2,3 +2,10 @@ node_modules/
 coverage/
 bun.lock
 bun.lockb
+
+# Shared crazy-goat standard files. Keep them byte-identical to the .github repo.
+docs/workflow.md
+docs/release-workflow.md
+bin/pick-issue.sh
+bin/worktree.sh
+bin/worktree-done.sh
