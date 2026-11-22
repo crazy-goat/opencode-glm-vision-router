@@ -44,6 +44,12 @@ zmian. Wtyczka nie wymaga opcji.
    `execute.after` zamienia wynik na krótki wskaźnik i uzbraja flagę. Wskaźnik
    podaje ścieżkę pliku i model z obsługą obrazu. Następne żądanie idzie na
    model wizyjny, a powtórne czytanie zwraca obraz.
+5. Gdy narzędzie zrzutu ekranu zakończy pracę na modelu tekstowym —
+   `browse_screenshot` lub `browser_screenshot` — ten sam hook uzbraja flagę
+   bez zmiany wyniku. OpenCode zapisuje zwrócony obraz w wyniku narzędzia,
+   więc następne żądanie, obsłużone przez model wizyjny, widzi obraz bez
+   czytania. Zrzut zapisany tylko do pliku dostaje krótką instrukcję ze
+   ścieżką, a model wizyjny czyta ten plik raz.
 
 Obraz ze starszych tur nie utrzymuje flagi. Nowa wiadomość bez obrazu czyści
 flagę.
@@ -55,10 +61,10 @@ flagę.
 - Zmiana modelu działa tylko w obrębie jednego dostawcy.
 - Wariant przechodzi tylko wtedy, gdy jest na liście `variants`.
 - OpenCode zamienia nieobsługiwane części obrazu na krótką notatkę, gdy aktywny
-  model nie ma wejścia obrazu. Wtyczka omija to, przełączając model wcześniej.
-  Wynik narzędzia z obrazem inline, na przykład zrzut ekranu z przeglądarki,
-  nie da się uratować: OpenCode porzuca obraz przed każdym hookiem. Zapisz taki
-  obraz do pliku i przeczytaj go narzędziem `read`.
+  model nie ma wejścia obrazu. Wtyczka uzbraja flagę, zanim to ma znaczenie:
+  przy czytaniu obrazów i przy narzędziach zrzutu ekranu powyżej. Obrazy
+  inline z innych narzędzi nie są wykrywane; zapisz taki obraz do pliku i
+  przeczytaj go narzędziem `read`.
 - Wtyczka nie zmienia modelu wybranego w sesji. `/models` nadal pokazuje model
   tekstowy.
 

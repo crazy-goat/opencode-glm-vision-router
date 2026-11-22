@@ -52,6 +52,12 @@ unchanged. No options are needed.
    names the file and the vision model, and asks for the file to be read
    again. The next request then resolves to the vision model, and the repeat
    read returns the image normally.
+5. When a screenshot tool completes on the text model — `browse_screenshot`
+   or `browser_screenshot` — the same hook arms the flag without touching the
+   result. OpenCode stores the returned image in the tool result, so the
+   next request, served by the vision model, sees the image without any
+   read. A screenshot saved only to a file gets a short instruction naming
+   the path, and the vision model reads that file once.
 
 Images in older turns do not keep the router armed. A new user turn without an
 image clears the flag.
@@ -64,10 +70,9 @@ image clears the flag.
   from another provider resolves as unavailable.
 - A variant is carried over only when it appears in `variants`.
 - OpenCode replaces unsupported image parts with a short note when the active
-  model has no image input. The router avoids that by switching beforehand.
-  Tool results that carry an inline image, such as a browser screenshot,
-  cannot be rescued this way: OpenCode drops the image part before any hook
-  can act on it. Save such an image to a file and read it instead.
+  model has no image input. The router arms before that note can matter: on
+  image reads and on the screenshot tools above. Inline images returned by
+  other tools are not detected; save such an image to a file and read it.
 - The plugin does not change the session's selected model. `/models` still
   shows the text model.
 

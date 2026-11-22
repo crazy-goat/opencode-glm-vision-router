@@ -10,12 +10,15 @@ import {
   attachmentIsImage,
   attachmentsOf,
   fileIsImage,
+  isScreenshotTool,
   readTargetIsImage,
   rescueContent,
   rescueEnabled,
   resolveModel,
+  screenshotImage,
   toolResultHasImage,
   userTurnHasImage,
+  visionReadContent,
 } from "./detect.js"
 
 export const DEFAULTS = {
@@ -24,6 +27,7 @@ export const DEFAULTS = {
   vision: "glm-5.3-flash",
   variants: ["low", "high", "max"],
   rescue: true,
+  screenshotTools: ["browse_screenshot", "browser_screenshot"],
 }
 
 /** Per-session state. A prompt hook owns each new user turn. */
@@ -42,6 +46,9 @@ export default Plugin.define({
       Array.isArray(options.variants) ? options.variants : DEFAULTS.variants,
     )
     const rescue = rescueEnabled(options.rescue)
+    const screenshotTools = new Set(
+      Array.isArray(options.screenshotTools) ? options.screenshotTools : DEFAULTS.screenshotTools,
+    )
 
     await ctx.session.hook("prompt", (event) => {
       const files = event.prompt.files ?? []
@@ -76,17 +83,35 @@ export default Plugin.define({
       }
     })
 
-    // A text-only model cannot display an image that a tool returns. Replace
-    // such a read result with a pointer before it reaches the model, and arm
-    // the image flag so the next request of the turn resolves to the vision
-    // model. The hook runs between requests, before the next model.resolve.
+    // A text-only model cannot display an image that a tool returns. Two tool
+    // results are rescued: an image read, and a screenshot. Both run between
+    // requests, before the next model.resolve, so arming the flag here
+    // switches the next request of the turn to the vision model.
     if (rescue) {
       await ctx.tool.hook("execute.after", (event) => {
-        if (event.tool !== "read" || event.status !== "completed") return
+        if (event.status !== "completed") return
         if (resolvedModels.get(event.sessionID) !== textModel) return
-        if (!readTargetIsImage(event.input)) return
-        imageTurns.set(event.sessionID, true)
-        event.result.content = rescueContent(String(event.input?.path ?? ""), visionModel)
+
+        if (event.tool === "read") {
+          if (!readTargetIsImage(event.input)) return
+          imageTurns.set(event.sessionID, true)
+          event.result.content = rescueContent(String(event.input?.path ?? ""), visionModel)
+          return
+        }
+
+        // A screenshot result keeps its inline image: OpenCode stores the
+        // original in the tool part, so the next request on the vision model
+        // sees it without a repeat read. A screenshot saved only as a file
+        // gets a read instruction naming the path instead.
+        if (isScreenshotTool(event.tool, screenshotTools)) {
+          const { inline, paths } = screenshotImage(event.result)
+          if (!inline && paths.length === 0) return
+          imageTurns.set(event.sessionID, true)
+          if (!inline && paths.length > 0) {
+            event.result.output.visionRead = visionReadContent(paths, visionModel)
+            event.result.content = [{ type: "text", text: JSON.stringify(event.result.output) }]
+          }
+        }
       })
     }
   },
