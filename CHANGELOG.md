@@ -60,6 +60,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Write a warning for each different cause of an image check failure. Before,
+  the first failure hid all later failures with another cause.
 - Keep an image turn on the vision model when a text prompt is steered into
   it. Before, each admitted prompt reset the image flag.
 - Detect images in the message shapes that OpenCode 2.3.2 stores. Detection
