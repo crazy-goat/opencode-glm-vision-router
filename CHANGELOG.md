@@ -14,6 +14,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Image detection in prompt attachments and in tool results.
 - Detection of admission metadata attachments, so uploads from desktop and
   TUI clients route to the vision model as well.
+- Rescue of image reads on the text model: the `execute.after` tool hook
+  replaces the image result of `read` with a pointer text and routes the next
+  request to the vision model, which reads the file again and sees the image.
 - Unit tests for detection and routing decisions.
 
 ### Changed

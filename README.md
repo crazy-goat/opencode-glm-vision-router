@@ -38,13 +38,20 @@ unchanged. No options are needed.
 1. The `prompt` hook checks the prompt files and the admission metadata
    attachments of each new user turn and stores an image flag for that
    session. Client uploads that arrive as metadata attachments are covered.
-2. The `context` hook detects images of the current turn: the attachments and
-   image parts of the last user message, and images returned by tools after
-   it, for example the `read` tool on a PNG file.
+2. The `context` hook keeps the flag armed for the rest of the turn when the
+   assembled request carries images: metadata attachments or image parts of
+   the last user message, or image parts in tool results. It runs after model
+   resolution, so it can only affect later requests of the same turn.
 3. The `experimental.model.resolve` hook rewrites the model for `primary`
    requests when the flag is set and the selected model is
    `opencode-go/glm-5.3`. Auxiliary requests such as titles and compaction
    are skipped.
+4. When the text model reads an image file with the `read` tool, the
+   `execute.after` tool hook replaces the image result with a short pointer
+   text and arms the flag, before the result reaches the model. The pointer
+   names the file and the vision model, and asks for the file to be read
+   again. The next request then resolves to the vision model, and the repeat
+   read returns the image normally.
 
 Images in older turns do not keep the router armed. A new user turn without an
 image clears the flag.
@@ -58,6 +65,9 @@ image clears the flag.
 - A variant is carried over only when it appears in `variants`.
 - OpenCode replaces unsupported image parts with a short note when the active
   model has no image input. The router avoids that by switching beforehand.
+  Tool results that carry an inline image, such as a browser screenshot,
+  cannot be rescued this way: OpenCode drops the image part before any hook
+  can act on it. Save such an image to a file and read it instead.
 - The plugin does not change the session's selected model. `/models` still
   shows the text model.
 

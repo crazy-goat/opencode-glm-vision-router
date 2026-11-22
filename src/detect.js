@@ -69,6 +69,22 @@ export function userTurnHasImage(messages) {
   return attachmentsOf(user).some(attachmentIsImage) || partsOf(user).some(partIsImage)
 }
 
+/** True when a read-tool target looks like an image. */
+export function readTargetIsImage(input) {
+  const path = String(input?.path ?? "")
+  return IMAGE_EXTENSION.test(path) || DATA_IMAGE.test(path)
+}
+
+/** Pointer text returned instead of an image a text-only model cannot display. */
+export function rescueContent(path, visionModel) {
+  return `Image file: ${path}. The current model has no image input. The next request uses ${visionModel}. Read the file again to view the image.`
+}
+
+/** True unless the rescue option is explicitly false. */
+export function rescueEnabled(value) {
+  return value !== false
+}
+
 /**
  * Decide the model for one request. Returns the input model unchanged when
  * the router does not apply. OpenCode rejects a cross-provider rewrite from
