@@ -10,7 +10,8 @@ next turn without an image uses the selected model again.
 
 ## Requirements
 
-- OpenCode V2, version 2.2.7 or newer. Tested on 2.3.2.
+- OpenCode V2, version 2.2.7 or newer. Checked in source on 2.2.7 and 2.3.2.
+  Tested end to end on 2.3.2.
 - Two models under the same provider: one text-only, one with image input.
 - The vision model must be in the OpenCode model list. A disabled model is not
   in this list.
@@ -82,7 +83,7 @@ for the session.
    allows it.
 5. If the vision model is not in the model list, or if the check fails, the
    request keeps the selected model. The plugin writes a warning to the log
-   once.
+   once for each different cause.
 
 OpenCode stores a new prompt before the first request of a turn. It stores the
 tool results of a step before the next request. Because of this order, a user
