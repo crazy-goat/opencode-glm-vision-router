@@ -28,6 +28,7 @@ async function harness({
   contextError,
   listError,
 } = {}) {
+  const errors = { context: contextError, list: listError }
   const hooks = {}
   const calls = { context: [], list: 0 }
   const registration = { dispose: async () => {} }
@@ -40,14 +41,14 @@ async function harness({
       },
       context: async (input) => {
         calls.context.push(input)
-        if (contextError) throw contextError
+        if (errors.context) throw errors.context
         return messages
       },
     },
     model: {
       list: async () => {
         calls.list += 1
-        if (listError) throw listError
+        if (errors.list) throw errors.list
         return { location: { directory: "/tmp/project" }, data: models }
       },
     },
@@ -64,7 +65,7 @@ async function harness({
     await hooks["experimental.model.resolve"](event)
     return event.model
   }
-  return { hooks, calls, resolve }
+  return { hooks, calls, errors, resolve }
 }
 
 const FLASH_HIGH = { providerID: "opencode-go", id: "glm-5.3-flash", variant: "high" }
@@ -258,6 +259,22 @@ describe("experimental.model.resolve", () => {
     expect(warn).toHaveBeenCalledTimes(1)
   })
 
+  test("warns again when a later failure has a different cause", async () => {
+    const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
+    await resolve()
+    errors.context = new Error("disk full")
+    await resolve()
+    expect(warn).toHaveBeenCalledTimes(2)
+  })
+
+  test("warns once when the same error repeats", async () => {
+    const { resolve, errors } = await harness({ contextError: new Error("decode failed") })
+    await resolve()
+    errors.context = new Error("decode failed")
+    await resolve()
+    expect(warn).toHaveBeenCalledTimes(1)
+  })
+
   test("keeps the selected model when the model list fails", async () => {
     const { resolve } = await harness({
       messages: [user({ files: [imageFile()] })],
@@ -334,6 +351,31 @@ describe("execute.after", () => {
         text: "Screenshot saved to: /tmp/screen.png. Read the file to view the image.",
       },
     ])
+  })
+
+  test("adds a read instruction for an MCP resource_link file URI", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    event.result = {
+      output: "file:///tmp/screen%20one.png",
+      content: [{ type: "text", text: "file:///tmp/screen%20one.png" }],
+    }
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([
+      { type: "text", text: "file:///tmp/screen%20one.png" },
+      {
+        type: "text",
+        text: "Screenshot saved to: /tmp/screen one.png. Read the file to view the image.",
+      },
+    ])
+  })
+
+  test("ignores plain text that only mentions a file URI", async () => {
+    const { hooks } = await harness({ options: { screenshotTools: ["capture_screen"] } })
+    const event = fileOnly()
+    event.result = { output: "Saved to file:///tmp/screen.png", content: [] }
+    await hooks["tool:execute.after"](event)
+    expect(event.result.content).toEqual([])
   })
 
   test("leaves a screenshot with an inline image unchanged", async () => {

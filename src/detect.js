@@ -6,6 +6,8 @@
  * in the encoded form that `ctx.session.context()` returns to a plugin.
  */
 
+import { URL, fileURLToPath } from "node:url"
+
 const IMAGE_MIME = /^image\//i
 // A path attachment reaches the model as text, so the vision model must read
 // the file. The OpenCode read tool returns only images and pdf files.
@@ -14,6 +16,7 @@ const MODALITY_EXTENSIONS = {
   image: /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i,
   pdf: /\.pdf$/i,
 }
+const IMAGE_EXTENSION = MODALITY_EXTENSIONS.image
 
 /** True when a MIME type names an image. */
 export function isImageMime(mime) {
@@ -99,9 +102,33 @@ export function toolResultModalities(message) {
   return found
 }
 
+const CODEMODE_NOTICE =
+  /^<codemode id="[^"\n]*" state="(?:completed|error)">\n([\s\S]*)\n<\/codemode>$/
+const FILE_LOCATION = /^(\/|file:\/\/|[A-Za-z]:[\\/])/
+
+/**
+ * The modalities of a stored message that is the notice of a Code Mode job
+ * that ran in the background: "image" when the notice lists the path of an
+ * image file, else none. OpenCode saves
+ * the files of such a job and lists only their paths, one per line, in a
+ * synthetic message. The check needs the `codemode` source in the metadata
+ * and the `<codemode>` text wrapper, so other text never matches.
+ */
+export function codemodeNoticeModalities(message) {
+  const found = new Set()
+  if (message?.type !== "synthetic" || message.metadata?.source !== "codemode") return found
+  const match = CODEMODE_NOTICE.exec(String(message.text ?? ""))
+  if (!match) return found
+  const hasImage = match[1]
+    .split("\n")
+    .some((line) => FILE_LOCATION.test(line) && IMAGE_EXTENSION.test(line.trim()))
+  if (hasImage) found.add("image")
+  return found
+}
+
 /**
  * The modalities of the files in the current turn: in user messages, and,
- * when `toolResults` is true, in tool results.
+ * when `toolResults` is true, in tool results and Code Mode job notices.
  */
 export function turnModalities(messages, { toolResults = true } = {}) {
   const found = new Set()
@@ -109,6 +136,7 @@ export function turnModalities(messages, { toolResults = true } = {}) {
     for (const modality of userMessageModalities(message)) found.add(modality)
     if (!toolResults) continue
     for (const modality of toolResultModalities(message)) found.add(modality)
+    for (const modality of codemodeNoticeModalities(message)) found.add(modality)
   }
   return found
 }
@@ -179,7 +207,9 @@ export function rescueEnabled(value) {
 
 /**
  * Image evidence of a screenshot tool result: an inline image file in the
- * content, and the paths of saved image files in the output.
+ * content, and the paths of saved image files in the output. OpenCode turns an
+ * MCP `resource_link` into a text part that holds only its URI, so a text
+ * that is exactly one image `file://` URI also gives a path.
  */
 export function screenshotImage(result) {
   const content = Array.isArray(result?.content) ? result.content : []
@@ -191,8 +221,32 @@ export function screenshotImage(result) {
     }
   }
   if (typeof output.path === "string" && output.path) paths.push(output.path)
+  const texts = [
+    ...(typeof result?.output === "string" ? [result.output] : []),
+    ...content.flatMap((item) => (item?.type === "text" ? [item.text] : [])),
+  ]
+  for (const text of texts) {
+    const path = imageFileUriPath(text)
+    if (path && !paths.includes(path)) paths.push(path)
+  }
   const inline = content.some((item) => item?.type === "file" && isImageMime(item.mime))
   return { inline, paths }
+}
+
+/** The path of a text that is exactly one local image `file://` URI, or undefined. */
+function imageFileUriPath(text) {
+  if (typeof text !== "string") return undefined
+  const value = text.trim()
+  if (!/^file:\/\/\S+$/i.test(value)) return undefined
+  try {
+    const url = new URL(value)
+    if (url.hostname && url.hostname !== "localhost") return undefined
+    if (url.search || url.hash || !IMAGE_EXTENSION.test(url.pathname)) return undefined
+    decodeURIComponent(url.pathname) // rejects a malformed escape
+    return fileURLToPath(url)
+  } catch {
+    return undefined
+  }
 }
 
 /**

@@ -49,8 +49,13 @@ export default Plugin.define({
 
     const warned = new Set()
     const warnOnce = (message, ...details) => {
-      if (warned.has(message)) return
-      warned.add(message)
+      // The key includes the error, so a failure with a new cause still logs.
+      const key = [
+        message,
+        ...details.map((d) => (d instanceof Error ? `${d.name}: ${d.message}` : String(d))),
+      ].join("\n")
+      if (warned.has(key)) return
+      warned.add(key)
       console.warn(`[glm-vision-router] ${message}`, ...details)
     }
 

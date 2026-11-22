@@ -14,7 +14,8 @@ angielskim.
 
 ## Wymagania
 
-- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono na 2.3.2.
+- OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono w kodzie źródłowym na
+  2.2.7 i 2.3.2. Test end-to-end działał na 2.3.2.
 - Dwa modele pod jednym dostawcą: jeden bez obsługi obrazu, jeden z obsługą.
 - Model z obsługą obrazu musi być na liście modeli OpenCode. Wyłączony model nie
   jest na tej liście.
@@ -57,14 +58,14 @@ Ustaw opcje we wpisie wtyczki w pliku `opencode.jsonc`:
 }
 ```
 
-| Opcja             | Typ      | Domyślnie         | Opis                                                                                                                                                                                  |
-| ----------------- | -------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`        | string   | `"opencode-go"`   | Dostawca obu modeli.                                                                                                                                                                  |
-| `text`            | string   | `"glm-5.3"`       | Model bez obsługi obrazu. Wtyczka zmienia tylko żądania na tym modelu.                                                                                                                |
-| `vision`          | string   | `"glm-5.3-flash"` | Model z obsługą obrazu. Musi być na liście modeli dostawcy `provider`.                                                                                                                |
-| `variants`        | string[] | brak              | Warianty, które wtyczka przenosi na model z obsługą obrazu. Bez tej opcji wtyczka przenosi każdy wariant, który ma ten model.                                                         |
-| `rescue`          | boolean  | `true`            | Kieruje żądanie po wyniku narzędzia z obrazem. Przy `false` liczą się tylko obrazy od użytkownika, a `screenshotTools` nie działa.                                                    |
-| `screenshotTools` | string[] | `[]`              | Narzędzia, które zapisują zrzut ekranu do pliku i nie zwracają obrazu. Gdy `output` podaje ścieżkę obrazu (zobacz „Jak to działa”), wtyczka dodaje do wyniku polecenie odczytu pliku. |
+| Opcja             | Typ      | Domyślnie         | Opis                                                                                                                                                                               |
+| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`        | string   | `"opencode-go"`   | Dostawca obu modeli.                                                                                                                                                               |
+| `text`            | string   | `"glm-5.3"`       | Model bez obsługi obrazu. Wtyczka zmienia tylko żądania na tym modelu.                                                                                                             |
+| `vision`          | string   | `"glm-5.3-flash"` | Model z obsługą obrazu. Musi być na liście modeli dostawcy `provider`.                                                                                                             |
+| `variants`        | string[] | brak              | Warianty, które wtyczka przenosi na model z obsługą obrazu. Bez tej opcji wtyczka przenosi każdy wariant, który ma ten model.                                                      |
+| `rescue`          | boolean  | `true`            | Kieruje żądanie po wyniku narzędzia z obrazem. Przy `false` liczą się tylko obrazy od użytkownika, a `screenshotTools` nie działa.                                                 |
+| `screenshotTools` | string[] | `[]`              | Narzędzia, które zapisują zrzut ekranu do pliku i nie zwracają obrazu. Gdy wynik podaje ścieżkę obrazu (zobacz „Jak to działa”), wtyczka dodaje do wyniku polecenie odczytu pliku. |
 
 ## Jak to działa
 
@@ -81,15 +82,17 @@ zapisuje w sesji.
    - załącznika ze ścieżką do obrazu lub pliku pdf z klienta desktop, w
      metadanych wiadomości;
    - pliku w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
-     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
+     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem;
+   - ścieżki pliku obrazu w powiadomieniu skryptu Code Mode, który działał w
+     tle. Opcja `rescue` steruje także tym sprawdzeniem.
 4. Plik wymaga modelu z obsługą obrazu, gdy lista modeli pokazuje, że ten model
    przyjmuje typ wejścia pliku (obraz, wideo, audio lub pdf), a model tekstowy
    go nie przyjmuje. Gdy tura ma taki plik, żądanie używa modelu z obsługą
    obrazu. Wtyczka przenosi wariant tylko wtedy, gdy ten model go ma i gdy
    opcja `variants` na to pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
-   nie uda, żądanie zostaje na wybranym modelu. Wtyczka raz zapisuje
-   ostrzeżenie w logu.
+   nie uda, żądanie zostaje na wybranym modelu. Wtyczka zapisuje
+   ostrzeżenie w logu raz dla każdej odrębnej przyczyny.
 
 OpenCode zapisuje nowy prompt przed pierwszym żądaniem tury. Wyniki narzędzi z
 danego kroku zapisuje przed następnym żądaniem. Dlatego obraz od użytkownika
@@ -113,6 +116,19 @@ Dla narzędzia MCP OpenCode bierze `output` z `structuredContent`. Gdy narzędzi
 nie ma `outputSchema`, OpenCode bierze `output` także z wyniku tekstowego w
 formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
 nie podaje ścieżki, więc hook nic nie robi.
+
+Wyjątkiem jest `resource_link` z narzędzia MCP. OpenCode zamienia go na wynik
+tekstowy, który zawiera tylko URI. Jeśli `output` albo część tekstowa to
+dokładnie jeden URI `file://` z rozszerzeniem obrazu, hook zamienia URI na
+ścieżkę i dodaje instrukcję odczytu. Hook ignoruje inny tekst, URI z zapytaniem
+lub fragmentem oraz URI z hostem innym niż `localhost`.
+
+Skrypt Code Mode, który przechodzi do tła, zapisuje swoje pliki obrazów.
+OpenCode wypisuje w powiadomieniu tylko ścieżki plików, bez obrazów. Wtyczka
+kieruje następne żądanie do modelu z obsługą obrazu, bo ten model może odczytać
+pliki narzędziem `read`. Model nie widzi obrazów, zanim je odczyta. Skrypt, który
+działa na pierwszym planie, zwraca obrazy w wyniku, więc nie wymaga osobnego
+sprawdzenia.
 
 ## Ograniczenia
 
@@ -145,7 +161,14 @@ nie podaje ścieżki, więc hook nic nie robi.
 bun install
 bun test
 bash bin/lint.sh
+bash bin/e2e.sh
 ```
+
+`bash bin/e2e.sh` jest opcjonalny. Skrypt uruchamia odizolowany `opencode serve` z
+testowym dostawcą (mock provider) i sprawdza routing w prawdziwym OpenCode. Skrypt
+potrzebuje programu `opencode`. Ustaw `OPENCODE_BIN`, aby wskazać program. Bez programu
+skrypt wypisuje `skipped`. Jeśli `OPENCODE_BIN` jest ustawione, ale nie wskazuje
+wykonywalnego pliku, skrypt kończy się kodem 1. CI nie uruchamia tego skryptu.
 
 Repozytorium stosuje [standard repozytoriów
 crazy-goat](https://github.com/crazy-goat/.github). Wszystko pisz po angielsku.

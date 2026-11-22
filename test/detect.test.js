@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+  codemodeNoticeModalities,
   currentTurn,
   findModel,
   isImageMime,
@@ -21,6 +22,7 @@ import {
   TEXT_MODEL,
   assistant,
   bashCall,
+  codemodeNotice,
   failedToolCall,
   idle,
   imageFile,
@@ -162,7 +164,70 @@ describe("toolResultModalities", () => {
   })
 })
 
+describe("codemodeNoticeModalities", () => {
+  const png = "/tmp/opencode/tool_0123456789ab.png"
+
+  test("accepts an image path in a Code Mode notice", () => {
+    expect(codemodeNoticeModalities(codemodeNotice({ paths: [png] }))).toEqual(new Set(["image"]))
+    expect(codemodeNoticeModalities(codemodeNotice({ paths: ["/tmp/a b/SHOT.JPG"] }))).toEqual(
+      new Set(["image"]),
+    )
+  })
+
+  test("accepts a file URI of an image", () => {
+    expect(codemodeNoticeModalities(codemodeNotice({ paths: ["file:///tmp/a.webp"] }))).toEqual(
+      new Set(["image"]),
+    )
+  })
+
+  test("rejects a notice without an image path", () => {
+    expect(codemodeNoticeModalities(codemodeNotice())).toEqual(new Set())
+    expect(
+      codemodeNoticeModalities(codemodeNotice({ paths: ["/tmp/tool_0123456789ab.pdf"] })),
+    ).toEqual(new Set())
+    const cancelled = codemodeNotice({ paths: [png], state: "cancelled" })
+    expect(codemodeNoticeModalities(cancelled)).toEqual(new Set())
+  })
+
+  test("accepts the notice of a job that ended with an error and saved files", () => {
+    expect(codemodeNoticeModalities(codemodeNotice({ paths: [png], state: "error" }))).toEqual(
+      new Set(["image"]),
+    )
+  })
+
+  test("rejects the text of a plain synthetic message and of a user message", () => {
+    expect(codemodeNoticeModalities(synthetic(png))).toEqual(new Set())
+    expect(
+      codemodeNoticeModalities(
+        user({ text: `<codemode id="j" state="completed">\n${png}\n</codemode>` }),
+      ),
+    ).toEqual(new Set())
+    const bare = { ...codemodeNotice({ paths: [png] }), metadata: undefined }
+    expect(codemodeNoticeModalities(bare)).toEqual(new Set())
+    expect(codemodeNoticeModalities({ ...bare, metadata: { source: "other" } })).toEqual(new Set())
+  })
+
+  test("rejects a missing message", () => {
+    expect(codemodeNoticeModalities(undefined)).toEqual(new Set())
+  })
+})
+
 describe("turnModalities", () => {
+  test("a Code Mode notice with an image path adds the image modality", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnModalities([user(), assistant(), notice])).toEqual(new Set(["image"]))
+  })
+
+  test("a Code Mode notice adds nothing when tool results are off", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnModalities([user(), notice], { toolResults: false })).toEqual(new Set())
+  })
+
+  test("a Code Mode notice of an earlier turn adds nothing", () => {
+    const notice = codemodeNotice({ paths: ["/tmp/tool_0123456789ab.png"] })
+    expect(turnModalities([user(), notice, idle(), user(), assistant()])).toEqual(new Set())
+  })
+
   test("collects the image of the current user message", () => {
     expect(turnModalities([user({ files: [imageFile()] })])).toEqual(new Set(["image"]))
   })
@@ -340,6 +405,50 @@ describe("screenshotImage", () => {
   test("ignores saved files that are not images", () => {
     const result = { output: { files: [{ mime: "text/html", path: "/tmp/page.html" }] } }
     expect(screenshotImage(result)).toEqual({ inline: false, paths: [] })
+  })
+
+  test("reads one file URI with an image extension from the output text", () => {
+    expect(screenshotImage({ output: "file:///tmp/a.png" })).toEqual({
+      inline: false,
+      paths: ["/tmp/a.png"],
+    })
+    expect(screenshotImage({ output: "  file:///tmp/My%20Shot.JPG\n" }).paths).toEqual([
+      "/tmp/My Shot.JPG",
+    ])
+  })
+
+  test("reads one file URI from the text content", () => {
+    const result = { output: null, content: [{ type: "text", text: "file:///tmp/a.webp" }] }
+    expect(screenshotImage(result)).toEqual({ inline: false, paths: ["/tmp/a.webp"] })
+  })
+
+  test("accepts an empty host or localhost", () => {
+    expect(screenshotImage({ output: "file://localhost/tmp/a.png" }).paths).toEqual(["/tmp/a.png"])
+  })
+
+  test("reads the same file URI once", () => {
+    const result = {
+      output: "file:///tmp/a.png",
+      content: [{ type: "text", text: "file:///tmp/a.png" }],
+    }
+    expect(screenshotImage(result).paths).toEqual(["/tmp/a.png"])
+  })
+
+  test("ignores text that is not exactly one image file URI", () => {
+    for (const text of [
+      "Saved to file:///tmp/a.png",
+      "file:///tmp/a.png\nfile:///tmp/b.png",
+      "file:///tmp/a.txt",
+      "file:///tmp/dir/",
+      "file://remote/tmp/a.png",
+      "https://example.com/a.png",
+      "/tmp/a.png",
+      "file:///tmp/a.png?x=1",
+      "file:///tmp/%zz.png",
+    ]) {
+      expect(screenshotImage({ output: text }).paths).toEqual([])
+      expect(screenshotImage({ content: [{ type: "text", text }] }).paths).toEqual([])
+    }
   })
 
   test("handles an output that is not an object", () => {
