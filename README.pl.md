@@ -143,8 +143,8 @@ bash bin/e2e.sh
 ```
 
 `bash bin/e2e.sh` jest opcjonalny. Skrypt uruchamia odizolowany `opencode serve` z
-provider-em testowym (mock) i sprawdza routing w prawdziwym OpenCode. Skrypt
-potrzebuje pliku `opencode`. Ustaw `OPENCODE_BIN`, aby wskazać plik. Bez pliku
+z testowym dostawcą (mock provider) i sprawdza routing w prawdziwym OpenCode. Skrypt
+potrzebuje programu `opencode`. Ustaw `OPENCODE_BIN`, aby wskazać program. Bez programu
 skrypt wypisuje `skipped`. CI nie uruchamia tego skryptu.
 
 Repozytorium stosuje [standard repozytoriów

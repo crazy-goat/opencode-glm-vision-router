@@ -7,7 +7,8 @@
  * API and checks which model each provider request uses.
  *
  * The child process gets a fresh HOME, TMPDIR and XDG_* directories and an
- * explicit environment. It never reads the real config, sessions or quota.
+ * explicit environment. It never reads your user config, sessions or quota.
+ * System and MDM-managed OpenCode config still applies.
  * Set E2E_DEBUG=1 to print the server log.
  */
 import { spawn } from "node:child_process"
@@ -36,12 +37,20 @@ const PNG_BASE64 =
 const PNG_BYTES = Buffer.from(PNG_BASE64, "base64")
 
 function findBinary() {
-  const candidates = process.env.OPENCODE_BIN
-    ? [process.env.OPENCODE_BIN]
-    : (process.env.PATH ?? "")
-        .split(delimiter)
-        .filter(Boolean)
-        .map((dir) => join(dir, "opencode"))
+  const explicit = process.env.OPENCODE_BIN
+  if (explicit) {
+    // An explicit path that does not work is an error, not a reason to skip.
+    try {
+      accessSync(explicit, constants.X_OK)
+    } catch {
+      throw new Error("OPENCODE_BIN is not an executable file: " + explicit)
+    }
+    return explicit
+  }
+  const candidates = (process.env.PATH ?? "")
+    .split(delimiter)
+    .filter(Boolean)
+    .map((dir) => join(dir, "opencode"))
   for (const candidate of candidates) {
     try {
       accessSync(candidate, constants.X_OK)
@@ -220,7 +229,13 @@ function startServer(bin, env, cwd) {
 }
 
 async function main() {
-  const bin = findBinary()
+  let bin
+  try {
+    bin = findBinary()
+  } catch (error) {
+    console.error(error.message)
+    return 1
+  }
   if (!bin) {
     console.log("skipped: no opencode binary (set OPENCODE_BIN or add opencode to PATH)")
     return 0
@@ -295,6 +310,12 @@ async function main() {
       }
       throw new Error("session " + id + " did not reach idle marker " + count)
     }
+    // Waits for the idle marker, then a short time, so that a late second turn shows in the count.
+    const waitSettled = async (id, count) => {
+      await waitIdle(id, count)
+      await sleep(500)
+      return context(id)
+    }
     const since = (start) => mock.requests.slice(start)
     const primary = (list) => list.filter((request) => !request.aux)
     const models = (list) => list.map((request) => request.model)
@@ -338,7 +359,7 @@ async function main() {
     await withTimeout(mock.waitHeld(), "the held request did not arrive")
     await prompt(two, { text: "steered text", delivery: "steer" })
     mock.release()
-    let rows = await waitIdle(two, 1)
+    let rows = await waitSettled(two, 1)
     list = primary(since(start))
     check(
       "D steered prompt stays on the vision model",
@@ -361,9 +382,7 @@ async function main() {
     await withTimeout(mock.waitHeld(), "the held request did not arrive")
     await prompt(three, { text: "queued text", delivery: "queue" })
     mock.release()
-    rows = await waitIdle(three, 1)
-    await sleep(500)
-    rows = await context(three)
+    rows = await waitSettled(three, 1)
     list = primary(since(start))
     check(
       "F queued prompt stays on the vision model (known limitation)",
