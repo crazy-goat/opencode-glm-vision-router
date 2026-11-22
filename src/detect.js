@@ -1,5 +1,5 @@
 /**
- * Image detection and routing helpers.
+ * Media detection and routing helpers.
  *
  * This module imports nothing from OpenCode, so the decisions can be unit
  * tested without a running server. The helpers read stored session messages
@@ -7,11 +7,45 @@
  */
 
 const IMAGE_MIME = /^image\//i
-const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i
+const MODALITY_EXTENSIONS = {
+  image: /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i,
+  video: /\.(mp4|m4v|mov|webm|mkv|avi|mpe?g|wmv|flv)$/i,
+  audio: /\.(mp3|wav|m4a|aac|ogg|oga|flac)$/i,
+  pdf: /\.pdf$/i,
+}
 
 /** True when a MIME type names an image. */
 export function isImageMime(mime) {
   return IMAGE_MIME.test(String(mime ?? "").trim())
+}
+
+/**
+ * The input modality of a MIME type: "image", "audio", "video" or "pdf", or
+ * undefined. The rules are the ones OpenCode uses to decide which files a
+ * model can read.
+ */
+export function mimeModality(mime) {
+  const value = String(mime ?? "")
+    .trim()
+    .toLowerCase()
+  for (const modality of ["image", "audio", "video"]) {
+    if (value.startsWith(`${modality}/`)) return modality
+  }
+  return value === "application/pdf" ? "pdf" : undefined
+}
+
+function attachmentModality(attachment) {
+  const byMime = mimeModality(attachment?.mime)
+  if (byMime) return byMime
+  for (const [modality, extension] of Object.entries(MODALITY_EXTENSIONS)) {
+    if (
+      extension.test(String(attachment?.name ?? "")) ||
+      extension.test(String(attachment?.path ?? ""))
+    ) {
+      return modality
+    }
+  }
+  return undefined
 }
 
 /**
@@ -29,45 +63,70 @@ export function currentTurn(messages) {
 }
 
 /**
- * True when a stored user message carries an image. OpenCode sends only the
- * message files to the model. Desktop path attachments reach the model as
+ * The modalities of the files in a stored user message. OpenCode sends only
+ * the message files to the model. Desktop path attachments reach the model as
  * text and are kept in `metadata.attachments`; routing them lets the vision
  * model read the file in the same turn.
  */
-export function userMessageHasImage(message) {
-  if (message?.type !== "user") return false
+export function userMessageModalities(message) {
+  const found = new Set()
+  if (message?.type !== "user") return found
   const files = Array.isArray(message.files) ? message.files : []
-  if (files.some((file) => isImageMime(file?.mime))) return true
+  for (const file of files) found.add(mimeModality(file?.mime))
   const attachments = Array.isArray(message.metadata?.attachments)
     ? message.metadata.attachments
     : []
-  return attachments.some(
-    (attachment) =>
-      isImageMime(attachment?.mime) ||
-      IMAGE_EXTENSION.test(String(attachment?.name ?? "")) ||
-      IMAGE_EXTENSION.test(String(attachment?.path ?? "")),
-  )
+  for (const attachment of attachments) found.add(attachmentModality(attachment))
+  found.delete(undefined)
+  return found
 }
 
-/** True when a stored assistant message holds a tool result with an image file. */
-export function toolResultHasImage(message) {
-  if (message?.type !== "assistant") return false
+/** The modalities of the files in the tool results of a stored assistant message. */
+export function toolResultModalities(message) {
+  const found = new Set()
+  if (message?.type !== "assistant") return found
   const parts = Array.isArray(message.content) ? message.content : []
-  return parts.some((part) => {
-    if (part?.type !== "tool") return false
+  for (const part of parts) {
+    if (part?.type !== "tool") continue
     const content = Array.isArray(part.state?.content) ? part.state.content : []
-    return content.some((item) => item?.type === "file" && isImageMime(item.mime))
-  })
+    for (const item of content) {
+      if (item?.type === "file") found.add(mimeModality(item.mime))
+    }
+  }
+  found.delete(undefined)
+  return found
 }
 
 /**
- * True when the current turn carries an image: in a user message, or, when
- * `toolResults` is true, in a tool result.
+ * The modalities of the files in the current turn: in user messages, and,
+ * when `toolResults` is true, in tool results.
  */
-export function turnHasImage(messages, { toolResults = true } = {}) {
-  return currentTurn(messages).some(
-    (message) => userMessageHasImage(message) || (toolResults && toolResultHasImage(message)),
-  )
+export function turnModalities(messages, { toolResults = true } = {}) {
+  const found = new Set()
+  for (const message of currentTurn(messages)) {
+    for (const modality of userMessageModalities(message)) found.add(modality)
+    if (!toolResults) continue
+    for (const modality of toolResultModalities(message)) found.add(modality)
+  }
+  return found
+}
+
+/** True when a model list entry accepts a modality as input. */
+export function acceptsInput(info, modality) {
+  const input = Array.isArray(info?.capabilities?.input) ? info.capabilities.input : []
+  return input.some((item) => String(item).startsWith(modality))
+}
+
+/**
+ * True when the turn needs the vision model: a file has a modality that the
+ * vision model accepts and the text model does not. An unknown text model
+ * accepts nothing.
+ */
+export function needsVision(modalities, { textInfo, visionInfo }) {
+  for (const modality of modalities) {
+    if (acceptsInput(visionInfo, modality) && !acceptsInput(textInfo, modality)) return true
+  }
+  return false
 }
 
 /** True when the router applies: a primary request on the configured text model. */

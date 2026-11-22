@@ -1,6 +1,6 @@
 # @crazy-goat/opencode-glm-vision-router
 
-Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje tury z obrazem z modelu
+Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje tury z obrazem lub wideo z modelu
 `GLM 5.3` bez obsługi obrazu na model `GLM 5.3 Flash` z obsługą obrazu. Oba
 modele mają tego samego dostawcę.
 
@@ -75,12 +75,15 @@ zapisuje w sesji.
    `ctx.session.context()`.
 2. Wtyczka bierze wiadomości po ostatnim znaczniku `idle`. Te wiadomości to
    bieżąca tura. OpenCode zapisuje ten znacznik, gdy sesja kończy pracę.
-3. Wtyczka szuka obrazu w bieżącej turze:
-   - pliku obrazu w wiadomości użytkownika;
-   - załącznika ze ścieżką do obrazu z klienta desktop, w metadanych wiadomości;
-   - pliku obrazu w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
+3. Wtyczka szuka plików multimedialnych w bieżącej turze:
+   - pliku w wiadomości użytkownika;
+   - załącznika ze ścieżką z klienta desktop, w metadanych wiadomości;
+   - pliku w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
      `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
-4. Gdy tura ma obraz, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
+4. Plik wymaga modelu z obsługą obrazu, gdy lista modeli pokazuje, że ten model
+   przyjmuje typ wejścia pliku (obraz, wideo, audio lub pdf), a model tekstowy
+   go nie przyjmuje. Dla domyślnej pary kierowane są obrazy i wideo. Gdy tura ma
+   taki plik, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
    wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
    pozwala.
 5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
@@ -121,8 +124,8 @@ nie podaje ścieżki, więc hook nic nie robi.
   z obsługą obrazu.
 - Wtyczka czyta zapisaną sesję przed każdym żądaniem `primary` na modelu
   tekstowym. W długiej sesji ten odczyt trwa dłużej.
-- Obrazy ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
-  wcześniejszego obrazu, załącz ten obraz ponownie.
+- Obrazy i wideo ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
+  wcześniejszego pliku, załącz ten plik ponownie.
 - OpenCode zapisuje jeden znacznik `idle`, gdy sesja kończy pracę. Prompt
   dodany do kolejki (`queue`) w czasie tury z obrazem działa przed tym
   znacznikiem, więc też używa modelu z obsługą obrazu.

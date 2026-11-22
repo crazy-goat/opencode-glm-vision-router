@@ -24,6 +24,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Route video as well as images. A file routes to the vision model when the
+  model list shows that the vision model accepts its input type (image, video,
+  audio or pdf) and the text model does not. Before, only `image/*` routed.
 - Correct the README: inline images from the screenshot tools are routed, not
   dropped. OpenCode stores them in the tool result before the note replaces
   them in a text-only request.

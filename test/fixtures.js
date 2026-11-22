@@ -59,6 +59,14 @@ export const imageFile = ({ mime = "image/png", name = "shot.png" } = {}) => ({
   name,
 })
 
+/** A prompt video file as OpenCode stores it after admission. */
+export const videoFile = ({ mime = "video/mp4", name = "clip.mp4" } = {}) => ({
+  data: "AAAA",
+  mime,
+  source: { type: "inline" },
+  name,
+})
+
 export const textFile = () => ({
   data: "aGVsbG8=",
   mime: "text/plain",
@@ -118,6 +126,13 @@ export const readImage = (path = "/tmp/shot.png") =>
     ],
   })
 
+/** The stored result of a tool call that returns a video file. */
+export const readVideo = (path = "/tmp/clip.mp4") =>
+  toolCall({
+    name: "read",
+    content: [{ type: "file", uri: "data:video/mp4;base64,AAAA", mime: "video/mp4", name: path }],
+  })
+
 export const bashCall = () => toolCall({ name: "bash", content: [{ type: "text", text: "ok" }] })
 
 export const assistant = ({ content = [], finish = "stop", model = TEXT_MODEL } = {}) => {
@@ -145,8 +160,11 @@ export const synthetic = (text = "A background job finished.") => {
 }
 
 /** An encoded model list entry, after the OpenCode schema accepts it. */
-export const modelInfo = (providerID, id, variants = []) =>
-  encodeModel({
-    ...Model.Info.default(providerID, id),
+export const modelInfo = (providerID, id, variants = [], input) => {
+  const base = Model.Info.default(providerID, id)
+  return encodeModel({
+    ...base,
+    ...(input ? { capabilities: { ...base.capabilities, input } } : {}),
     variants: variants.map((variant) => ({ id: variant })),
   })
+}

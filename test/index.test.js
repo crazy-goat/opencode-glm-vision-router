@@ -9,10 +9,13 @@ import {
   imageFile,
   modelInfo,
   readImage,
+  readVideo,
   user,
+  videoFile,
 } from "./fixtures.js"
 
-const VISION = modelInfo("opencode-go", "glm-5.3-flash", ["low", "high", "max"])
+const INPUT = ["text", "image", "video"]
+const VISION = modelInfo("opencode-go", "glm-5.3-flash", ["low", "high", "max"], INPUT)
 
 /**
  * Runs the plugin setup against a fake OpenCode context. `messages` is what
@@ -129,6 +132,38 @@ describe("experimental.model.resolve", () => {
     ]
     const { resolve } = await harness({ messages })
     expect(await resolve()).toEqual(FLASH_HIGH)
+  })
+
+  test("routes a video file in a user message", async () => {
+    const { resolve } = await harness({ messages: [user({ files: [videoFile()] })] })
+    expect(await resolve()).toEqual(FLASH_HIGH)
+  })
+
+  test("routes the step after a tool result with a video", async () => {
+    const messages = [
+      user({ text: "watch clip.mp4" }),
+      assistant({ content: [readVideo()], finish: "tool-calls" }),
+    ]
+    const { resolve } = await harness({ messages })
+    expect(await resolve()).toEqual(FLASH_HIGH)
+  })
+
+  test("keeps the text model for a video when the text model accepts video", async () => {
+    const text = modelInfo("opencode-go", "glm-5.3", [], INPUT)
+    const { resolve } = await harness({
+      messages: [user({ files: [videoFile()] })],
+      models: [VISION, text],
+    })
+    expect(await resolve()).toEqual(TEXT_HIGH)
+  })
+
+  test("keeps the text model for a video when the vision model has no video input", async () => {
+    const imageOnly = modelInfo("opencode-go", "glm-5.3-flash", ["low", "high", "max"])
+    const { resolve } = await harness({
+      messages: [user({ files: [videoFile()] })],
+      models: [imageOnly],
+    })
+    expect(await resolve()).toEqual(TEXT_HIGH)
   })
 
   test("ignores tool result images when rescue is false", async () => {

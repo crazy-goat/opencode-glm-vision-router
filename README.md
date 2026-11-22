@@ -1,7 +1,7 @@
 # @crazy-goat/opencode-glm-vision-router
 
-An [OpenCode](https://opencode.ai) V2 plugin that routes image turns from a
-text-only GLM 5.3 model to the vision-capable GLM 5.3 Flash model of the same
+An [OpenCode](https://opencode.ai) V2 plugin that routes image and video
+turns from a text-only GLM 5.3 model to the vision-capable GLM 5.3 Flash model of the same
 provider.
 
 The rewrite applies to one request at a time. The session keeps showing the
@@ -72,12 +72,15 @@ for the session.
    `ctx.session.context()`.
 2. The plugin takes the messages after the last `idle` marker. These messages
    are the current turn. OpenCode writes the marker when the session stops.
-3. The plugin looks for an image in the current turn:
-   - an image file in a user message;
-   - an image path attachment from a desktop client, in the message metadata;
-   - an image file in a tool result, for example from a `read` of an image or
-     from a screenshot tool. The `rescue` option controls this check.
-4. If the turn has an image, the request uses the vision model. The plugin
+3. The plugin looks for media files in the current turn:
+   - a file in a user message;
+   - a path attachment from a desktop client, in the message metadata;
+   - a file in a tool result, for example from a `read` of an image or from a
+     screenshot tool. The `rescue` option controls this check.
+4. A file needs the vision model if the model list shows that the vision model
+   accepts its input type (image, video, audio or pdf) and the text model does
+   not. For the default pair, images and videos route.
+   If the turn has such a file, the request uses the vision model. The plugin
    carries over the variant only if the vision model has it and `variants`
    allows it.
 5. If the vision model is not in the model list, or if the check fails, the
@@ -118,8 +121,8 @@ gives no path, so the hook does nothing.
   model.
 - The plugin reads the stored session before each `primary` request on the text
   model. In a long session, this read takes more time.
-- Images in older turns do not route. If a new turn is about an earlier image,
-  attach the image again.
+- Images and videos in older turns do not route. If a new turn is about an
+  earlier file, attach the file again.
 - OpenCode writes one `idle` marker when the session stops. A prompt that you
   queue during an image turn runs before that marker, so it also uses the
   vision model.
