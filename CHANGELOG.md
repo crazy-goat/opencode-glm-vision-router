@@ -17,9 +17,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Rescue of image reads on the text model: the `execute.after` tool hook
   replaces the image result of `read` with a pointer text and routes the next
   request to the vision model, which reads the file again and sees the image.
+- Screenshot routing: the same hook arms the vision flag when
+  `browse_screenshot` or `browser_screenshot` returns an image on the text
+  model. The stored image reaches the next request without a repeat read; a
+  screenshot saved only as a file carries a read instruction for the saved
+  path. The `screenshotTools` option lists the handled tool names.
 - Unit tests for detection and routing decisions.
 
 ### Changed
+
+- Correct the README: inline images from the screenshot tools are routed, not
+  dropped. OpenCode stores them in the tool result before the note replaces
+  them in a text-only request.
 
 - State OpenCode Go as the default setup in the README. Remove the
   alternative-provider configuration example.

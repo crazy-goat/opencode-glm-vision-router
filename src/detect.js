@@ -85,6 +85,36 @@ export function rescueEnabled(value) {
   return value !== false
 }
 
+/** True when a completed tool call is a screenshot tool the hook handles. */
+export function isScreenshotTool(tool, screenshotTools) {
+  return screenshotTools.has(String(tool ?? ""))
+}
+
+/**
+ * Image evidence of a screenshot tool result. A screenshot tool returns an
+ * image by definition, so a saved output path counts without a MIME type.
+ */
+export function screenshotImage(result) {
+  const content = Array.isArray(result?.content) ? result.content : []
+  const output = result?.output ?? {}
+  const paths = []
+  if (Array.isArray(output.files)) {
+    for (const file of output.files) {
+      if (String(file?.mime ?? "").startsWith("image/") && file?.path) {
+        paths.push(String(file.path))
+      }
+    }
+  }
+  if (typeof output.path === "string" && output.path) paths.push(output.path)
+  return { inline: content.some(partIsImage), paths }
+}
+
+/** Instruction added when a screenshot is saved only as a file. */
+export function visionReadContent(paths, visionModel) {
+  const list = paths.join(", ")
+  return `Screenshot saved to: ${list}. The current model has no image input. The next request uses ${visionModel}. Read the file to view the image.`
+}
+
 /**
  * Decide the model for one request. Returns the input model unchanged when
  * the router does not apply. OpenCode rejects a cross-provider rewrite from

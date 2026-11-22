@@ -3,14 +3,17 @@ import {
   attachmentIsImage,
   attachmentsOf,
   fileIsImage,
+  isScreenshotTool,
   partIsImage,
   partsOf,
   readTargetIsImage,
   rescueContent,
   rescueEnabled,
   resolveModel,
+  screenshotImage,
   toolResultHasImage,
   userTurnHasImage,
+  visionReadContent,
 } from "../src/detect.js"
 
 const selected = { providerID: "opencode-go", id: "glm-5.3" }
@@ -234,6 +237,70 @@ describe("rescueEnabled", () => {
 
   test("is on for any other value", () => {
     expect(rescueEnabled("no")).toBe(true)
+  })
+})
+
+describe("isScreenshotTool", () => {
+  const tools = new Set(["browse_screenshot", "browser_screenshot"])
+
+  test("accepts the default screenshot tools", () => {
+    expect(isScreenshotTool("browse_screenshot", tools)).toBe(true)
+    expect(isScreenshotTool("browser_screenshot", tools)).toBe(true)
+  })
+
+  test("rejects other tools", () => {
+    expect(isScreenshotTool("read", tools)).toBe(false)
+    expect(isScreenshotTool("screenshot_diff", tools)).toBe(false)
+  })
+
+  test("rejects an empty tool name", () => {
+    expect(isScreenshotTool(undefined, tools)).toBe(false)
+  })
+})
+
+describe("screenshotImage", () => {
+  test("detects an inline screenshot image and its saved path", () => {
+    const result = {
+      content: [
+        { type: "file", mime: "image/jpeg", uri: "data:image/jpeg;base64,AAAA" },
+        { type: "text", text: "{}" },
+      ],
+      output: { files: [{ mime: "image/jpeg", path: "/tmp/screenshot.jpeg" }] },
+    }
+    expect(screenshotImage(result)).toEqual({ inline: true, paths: ["/tmp/screenshot.jpeg"] })
+  })
+
+  test("collects a saved browse path without an inline image", () => {
+    const result = {
+      content: [{ type: "text", text: "{}" }],
+      output: { width: 1512, height: 828, format: "png", path: "/tmp/browse.png", bytes: 85576 },
+    }
+    expect(screenshotImage(result)).toEqual({ inline: false, paths: ["/tmp/browse.png"] })
+  })
+
+  test("returns empty evidence for a result without images", () => {
+    expect(screenshotImage({ content: [{ type: "text", text: "{}" }], output: {} })).toEqual({
+      inline: false,
+      paths: [],
+    })
+  })
+
+  test("handles an empty result", () => {
+    expect(screenshotImage(undefined)).toEqual({ inline: false, paths: [] })
+  })
+})
+
+describe("visionReadContent", () => {
+  test("names the saved path and the vision model", () => {
+    const text = visionReadContent(["/tmp/browse.png"], "glm-5.3-flash")
+    expect(text).toContain("/tmp/browse.png")
+    expect(text).toContain("glm-5.3-flash")
+    expect(text).toContain("Read the file")
+  })
+
+  test("joins several saved paths", () => {
+    const text = visionReadContent(["/tmp/a.png", "/tmp/b.jpeg"], "glm-5.3-flash")
+    expect(text).toContain("/tmp/a.png, /tmp/b.jpeg")
   })
 })
 
