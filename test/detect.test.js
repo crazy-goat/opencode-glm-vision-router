@@ -50,8 +50,10 @@ describe("resolveModel", () => {
 
   test("skips another provider", () => {
     expect(
-      resolveModel(input({ hasImage: true, model: { providerID: "nexos-ai", id: "glm-5.3" } })),
-    ).toEqual({ providerID: "nexos-ai", id: "glm-5.3" })
+      resolveModel(
+        input({ hasImage: true, model: { providerID: "other-provider", id: "glm-5.3" } }),
+      ),
+    ).toEqual({ providerID: "other-provider", id: "glm-5.3" })
   })
 
   test("skips another model from the same provider", () => {

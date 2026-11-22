@@ -65,23 +65,10 @@ An agent-level `model` overrides the root default, so set both when the
 
 ## Options
 
-Pass options with the object form of a plugin entry:
+The defaults target OpenCode Go. The standard setup needs no options.
 
-```jsonc
-{
-  "plugins": [
-    {
-      "package": "github:crazy-goat/opencode-glm-vision-router",
-      "options": {
-        "provider": "nexos-ai",
-        "text": "GLM 5.3",
-        "vision": "GLM 5.3 Flash",
-        "variants": ["low", "high", "max"],
-      },
-    },
-  ],
-}
-```
+Advanced users can pass overrides through the `options` field of a plugin
+entry:
 
 | Option     | Default                  | Purpose                           |
 | ---------- | ------------------------ | --------------------------------- |
