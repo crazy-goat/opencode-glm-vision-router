@@ -13,8 +13,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Configurable `provider`, `text`, `vision`, `variants`, `rescue` and
   `screenshotTools` options.
 - Image detection in prompt attachments and in tool results.
-- Detection of admission metadata attachments, so uploads from desktop and
-  TUI clients route to the vision model as well.
+- Detection of admission metadata attachments, so uploads from desktop
+  clients route to the vision model. The TUI sends uploads in `files`, which
+  the plugin also detects.
 - Tool result images route the next request. After a `read` of an image file
   or a screenshot on the text model, the next request of the turn uses the
   vision model and sees the stored image.
@@ -23,10 +24,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   vision model reads the files. The `rescue` option controls this check.
 - A read instruction for screenshot tools that save the image only to a file.
   The `screenshotTools` option lists these tools.
+- A read instruction for an MCP `resource_link` result. The `screenshotTools`
+  hook accepts an output or text part that is exactly one `file://` URI with an
+  image extension.
 - Unit tests for detection and routing decisions.
+- An optional end-to-end harness, `bash bin/e2e.sh`. It runs an isolated
+  `opencode serve` with a mock provider and checks the routing scenarios.
 
 ### Changed
 
+- Check the supported OpenCode floor in source. The step order, the hooks and
+  the stored message shapes are the same in 2.2.7 and 2.3.2, so the floor stays
+  at 2.2.7.
 - Correct the README: inline images from the screenshot tools are routed, not
   dropped. OpenCode stores them in the tool result before the note replaces
   them in a text-only request.
@@ -62,6 +71,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Write a warning for each different cause of an image check failure. Before,
+  the first failure hid all later failures with another cause.
 - Keep an image turn on the vision model when a text prompt is steered into
   it. Before, each admitted prompt reset the image flag.
 - Detect images in the message shapes that OpenCode 2.3.2 stores. Detection

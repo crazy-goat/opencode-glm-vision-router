@@ -10,7 +10,8 @@ next turn without an image uses the selected model again.
 
 ## Requirements
 
-- OpenCode V2, version 2.2.7 or newer. Tested on 2.3.2.
+- OpenCode V2, version 2.2.7 or newer. Checked in source on 2.2.7 and 2.3.2.
+  Tested end to end on 2.3.2.
 - Two models under the same provider: one text-only, one with image input.
 - The vision model must be in the OpenCode model list. A disabled model is not
   in this list.
@@ -60,7 +61,7 @@ Set the options in the plugin entry of `opencode.jsonc`:
 | `vision`          | string   | `"glm-5.3-flash"` | The model with image input. It must be in the model list of `provider`.                                                                                                |
 | `variants`        | string[] | not set           | The variants that the plugin carries over to the vision model. If not set, it carries over each variant that the vision model has.                                     |
 | `rescue`          | boolean  | `true`            | Route the request after a tool result with an image. If `false`, only user images route, and `screenshotTools` has no effect.                                          |
-| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. If the output gives the image path (see How it works), the plugin adds a read instruction to their result. |
+| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. If the result gives the image path (see How it works), the plugin adds a read instruction to their result. |
 
 ## How it works
 
@@ -84,7 +85,7 @@ for the session.
    allows it.
 5. If the vision model is not in the model list, or if the check fails, the
    request keeps the selected model. The plugin writes a warning to the log
-   once.
+   once for each different cause.
 
 OpenCode stores a new prompt before the first request of a turn. It stores the
 tool results of a step before the next request. Because of this order, a user
@@ -108,6 +109,12 @@ For an MCP tool, OpenCode takes the output from `structuredContent`. If the
 tool has no `outputSchema`, OpenCode also takes the output from a text result
 that is JSON. A plain text result such as `Saved to /tmp/a.png`
 gives no path, so the hook does nothing.
+
+An MCP `resource_link` is the exception. OpenCode turns it into a text result
+that holds only the URI. If the output or a text part is exactly one `file://`
+URI with an image extension, the hook converts the URI to a path and adds the
+read instruction. The hook ignores other text, URIs with a query or a fragment,
+and URIs with a host other than `localhost`.
 
 A Code Mode script that moves to the background saves its image files. OpenCode
 lists only the file paths in a notice message, not the images. The plugin routes
@@ -145,7 +152,14 @@ it needs no special check.
 bun install
 bun test
 bash bin/lint.sh
+bash bin/e2e.sh
 ```
+
+`bash bin/e2e.sh` is optional. It starts an isolated `opencode serve` with a mock
+provider and checks the routing in real OpenCode. It needs the `opencode` binary.
+Set `OPENCODE_BIN` to choose it. Without a binary, the script prints `skipped`.
+If `OPENCODE_BIN` is set but is not an executable file, the script exits 1.
+CI does not run it.
 
 The repository follows the [crazy-goat repository
 standard](https://github.com/crazy-goat/.github). Write everything in English.
