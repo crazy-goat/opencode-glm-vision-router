@@ -11,8 +11,21 @@ const DATA_IMAGE = /^data:image\//i
 /** True when a prompt attachment looks like an image. */
 export function fileIsImage(file) {
   const uri = String(file?.uri ?? "")
+  const path = String(file?.path ?? "")
   const name = String(file?.name ?? "")
-  return IMAGE_EXTENSION.test(name || uri) || DATA_IMAGE.test(uri)
+  return IMAGE_EXTENSION.test(name || uri || path) || DATA_IMAGE.test(uri)
+}
+
+/** True when an admission attachment looks like an image. */
+export function attachmentIsImage(attachment) {
+  return fileIsImage(attachment) || String(attachment?.mime ?? "").startsWith("image/")
+}
+
+/** Attachments of a prompt event or a stored message, in any known shape. */
+export function attachmentsOf(record) {
+  if (Array.isArray(record?.attachments)) return record.attachments
+  if (Array.isArray(record?.metadata?.attachments)) return record.metadata.attachments
+  return []
 }
 
 /** True when a request message part carries image media. */
@@ -39,6 +52,21 @@ export function toolResultHasImage(messages) {
     if (message?.role === "user") lastUser = index
   })
   return messages.slice(lastUser + 1).some((message) => partsOf(message).some(partIsImage))
+}
+
+/** The last user message of a request context, or undefined. */
+function lastUserMessage(messages) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") return messages[index]
+  }
+  return undefined
+}
+
+/** True when the current user turn carries an image in attachments or parts. */
+export function userTurnHasImage(messages) {
+  const user = lastUserMessage(messages)
+  if (!user) return false
+  return attachmentsOf(user).some(attachmentIsImage) || partsOf(user).some(partIsImage)
 }
 
 /**
