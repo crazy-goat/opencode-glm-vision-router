@@ -56,14 +56,14 @@ Ustaw opcje we wpisie wtyczki w pliku `opencode.jsonc`:
 }
 ```
 
-| Opcja             | Typ      | Domyślnie         | Opis                                                                                                                               |
-| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`        | string   | `"opencode-go"`   | Dostawca obu modeli.                                                                                                               |
-| `text`            | string   | `"glm-5.3"`       | Model bez obsługi obrazu. Wtyczka zmienia tylko żądania na tym modelu.                                                             |
-| `vision`          | string   | `"glm-5.3-flash"` | Model z obsługą obrazu. Musi być na liście modeli dostawcy `provider`.                                                             |
-| `variants`        | string[] | brak              | Warianty, które wtyczka przenosi na model z obsługą obrazu. Bez tej opcji wtyczka przenosi każdy wariant, który ma ten model.      |
-| `rescue`          | boolean  | `true`            | Kieruje żądanie po wyniku narzędzia z obrazem. Przy `false` liczą się tylko obrazy od użytkownika, a `screenshotTools` nie działa. |
-| `screenshotTools` | string[] | `[]`              | Narzędzia, które zapisują zrzut ekranu do pliku i nie zwracają obrazu. Wtyczka dodaje do ich wyniku polecenie odczytu pliku.       |
+| Opcja             | Typ      | Domyślnie         | Opis                                                                                                                                                                                  |
+| ----------------- | -------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`        | string   | `"opencode-go"`   | Dostawca obu modeli.                                                                                                                                                                  |
+| `text`            | string   | `"glm-5.3"`       | Model bez obsługi obrazu. Wtyczka zmienia tylko żądania na tym modelu.                                                                                                                |
+| `vision`          | string   | `"glm-5.3-flash"` | Model z obsługą obrazu. Musi być na liście modeli dostawcy `provider`.                                                                                                                |
+| `variants`        | string[] | brak              | Warianty, które wtyczka przenosi na model z obsługą obrazu. Bez tej opcji wtyczka przenosi każdy wariant, który ma ten model.                                                         |
+| `rescue`          | boolean  | `true`            | Kieruje żądanie po wyniku narzędzia z obrazem. Przy `false` liczą się tylko obrazy od użytkownika, a `screenshotTools` nie działa.                                                    |
+| `screenshotTools` | string[] | `[]`              | Narzędzia, które zapisują zrzut ekranu do pliku i nie zwracają obrazu. Gdy `output` podaje ścieżkę obrazu (zobacz „Jak to działa”), wtyczka dodaje do wyniku polecenie odczytu pliku. |
 
 ## Jak to działa
 
@@ -105,8 +105,9 @@ zakończony wynik. Hook działa tylko wtedy, gdy wynik nie ma obrazu, a jego
 tekst: `Screenshot saved to: <path>. Read the file to view the image.` Model
 czyta ten plik, a następne żądanie używa modelu z obsługą obrazu.
 
-Dla narzędzia MCP OpenCode bierze `output` z `structuredContent` albo z wyniku
-tekstowego w formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
+Dla narzędzia MCP OpenCode bierze `output` z `structuredContent`. Gdy narzędzie
+nie ma `outputSchema`, OpenCode bierze `output` także z wyniku tekstowego w
+formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
 nie podaje ścieżki, więc hook nic nie robi.
 
 ## Ograniczenia

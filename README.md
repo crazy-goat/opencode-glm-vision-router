@@ -53,14 +53,14 @@ Set the options in the plugin entry of `opencode.jsonc`:
 }
 ```
 
-| Option            | Type     | Default           | Description                                                                                                                        |
-| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `provider`        | string   | `"opencode-go"`   | The provider of both models.                                                                                                       |
-| `text`            | string   | `"glm-5.3"`       | The text-only model. The plugin changes only requests on this model.                                                               |
-| `vision`          | string   | `"glm-5.3-flash"` | The model with image input. It must be in the model list of `provider`.                                                            |
-| `variants`        | string[] | not set           | The variants that the plugin carries over to the vision model. If not set, it carries over each variant that the vision model has. |
-| `rescue`          | boolean  | `true`            | Route the request after a tool result with an image. If `false`, only user images route, and `screenshotTools` has no effect.      |
-| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. The plugin adds a read instruction to their result.                    |
+| Option            | Type     | Default           | Description                                                                                                                                                            |
+| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`        | string   | `"opencode-go"`   | The provider of both models.                                                                                                                                           |
+| `text`            | string   | `"glm-5.3"`       | The text-only model. The plugin changes only requests on this model.                                                                                                   |
+| `vision`          | string   | `"glm-5.3-flash"` | The model with image input. It must be in the model list of `provider`.                                                                                                |
+| `variants`        | string[] | not set           | The variants that the plugin carries over to the vision model. If not set, it carries over each variant that the vision model has.                                     |
+| `rescue`          | boolean  | `true`            | Route the request after a tool result with an image. If `false`, only user images route, and `screenshotTools` has no effect.                                          |
+| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. If the output gives the image path (see How it works), the plugin adds a read instruction to their result. |
 
 ## How it works
 
@@ -102,8 +102,9 @@ image MIME type and a `path`. Then the hook adds this text to the result:
 `Screenshot saved to: <path>. Read the file to view the image.` The model reads
 the file, and the next request uses the vision model.
 
-For an MCP tool, OpenCode takes the output from `structuredContent`, or from a
-text result that is JSON. A plain text result such as `Saved to /tmp/a.png`
+For an MCP tool, OpenCode takes the output from `structuredContent`. If the
+tool has no `outputSchema`, OpenCode also takes the output from a text result
+that is JSON. A plain text result such as `Saved to /tmp/a.png`
 gives no path, so the hook does nothing.
 
 ## Limitations
