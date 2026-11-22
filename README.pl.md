@@ -110,6 +110,12 @@ nie ma `outputSchema`, OpenCode bierze `output` także z wyniku tekstowego w
 formacie JSON. Zwykły tekst, na przykład `Saved to /tmp/a.png`,
 nie podaje ścieżki, więc hook nic nie robi.
 
+Wyjątkiem jest `resource_link` z narzędzia MCP. OpenCode zamienia go na wynik
+tekstowy, który zawiera tylko URI. Jeśli `output` albo część tekstowa to
+dokładnie jeden URI `file://` z rozszerzeniem obrazu, hook zamienia URI na
+ścieżkę i dodaje instrukcję odczytu. Hook ignoruje inny tekst, URI z zapytaniem
+lub fragmentem oraz URI z nazwą hosta.
+
 ## Ograniczenia
 
 - Hook `experimental.model.resolve` jest eksperymentalny. Jego nazwa lub

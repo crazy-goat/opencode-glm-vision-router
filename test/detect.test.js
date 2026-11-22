@@ -336,6 +336,46 @@ describe("screenshotImage", () => {
     expect(screenshotImage(result)).toEqual({ inline: false, paths: [] })
   })
 
+  test("reads one file URI with an image extension from the output text", () => {
+    expect(screenshotImage({ output: "file:///tmp/a.png" })).toEqual({
+      inline: false,
+      paths: ["/tmp/a.png"],
+    })
+    expect(screenshotImage({ output: "  file:///tmp/My%20Shot.JPG\n" }).paths).toEqual([
+      "/tmp/My Shot.JPG",
+    ])
+  })
+
+  test("reads one file URI from the text content", () => {
+    const result = { output: null, content: [{ type: "text", text: "file:///tmp/a.webp" }] }
+    expect(screenshotImage(result)).toEqual({ inline: false, paths: ["/tmp/a.webp"] })
+  })
+
+  test("reads the same file URI once", () => {
+    const result = {
+      output: "file:///tmp/a.png",
+      content: [{ type: "text", text: "file:///tmp/a.png" }],
+    }
+    expect(screenshotImage(result).paths).toEqual(["/tmp/a.png"])
+  })
+
+  test("ignores text that is not exactly one image file URI", () => {
+    for (const text of [
+      "Saved to file:///tmp/a.png",
+      "file:///tmp/a.png\nfile:///tmp/b.png",
+      "file:///tmp/a.txt",
+      "file:///tmp/dir/",
+      "file://remote/tmp/a.png",
+      "https://example.com/a.png",
+      "/tmp/a.png",
+      "file:///tmp/a.png?x=1",
+      "file:///tmp/%zz.png",
+    ]) {
+      expect(screenshotImage({ output: text }).paths).toEqual([])
+      expect(screenshotImage({ content: [{ type: "text", text }] }).paths).toEqual([])
+    }
+  })
+
   test("handles an output that is not an object", () => {
     expect(screenshotImage({ output: "saved", content: [] })).toEqual({ inline: false, paths: [] })
     expect(screenshotImage(undefined)).toEqual({ inline: false, paths: [] })

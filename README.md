@@ -107,6 +107,12 @@ tool has no `outputSchema`, OpenCode also takes the output from a text result
 that is JSON. A plain text result such as `Saved to /tmp/a.png`
 gives no path, so the hook does nothing.
 
+An MCP `resource_link` is the exception. OpenCode turns it into a text result
+that holds only the URI. If the output or a text part is exactly one `file://`
+URI with an image extension, the hook converts the URI to a path and adds the
+read instruction. The hook ignores other text, URIs with a query or a fragment,
+and URIs with a host.
+
 ## Limitations
 
 - `experimental.model.resolve` is experimental. Its name or event shape can

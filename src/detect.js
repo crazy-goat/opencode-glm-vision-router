@@ -6,6 +6,8 @@
  * in the encoded form that `ctx.session.context()` returns to a plugin.
  */
 
+import { URL, fileURLToPath } from "node:url"
+
 const IMAGE_MIME = /^image\//i
 const IMAGE_EXTENSION = /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif|tiff?)$/i
 
@@ -118,7 +120,9 @@ export function rescueEnabled(value) {
 
 /**
  * Image evidence of a screenshot tool result: an inline image file in the
- * content, and the paths of saved image files in the output.
+ * content, and the paths of saved image files in the output. OpenCode turns an
+ * MCP `resource_link` into a text part that holds only its URI, so a text
+ * that is exactly one image `file://` URI also gives a path.
  */
 export function screenshotImage(result) {
   const content = Array.isArray(result?.content) ? result.content : []
@@ -130,8 +134,31 @@ export function screenshotImage(result) {
     }
   }
   if (typeof output.path === "string" && output.path) paths.push(output.path)
+  const texts = [
+    ...(typeof result?.output === "string" ? [result.output] : []),
+    ...content.flatMap((item) => (item?.type === "text" ? [item.text] : [])),
+  ]
+  for (const text of texts) {
+    const path = imageFileUriPath(text)
+    if (path && !paths.includes(path)) paths.push(path)
+  }
   const inline = content.some((item) => item?.type === "file" && isImageMime(item.mime))
   return { inline, paths }
+}
+
+/** The path of a text that is exactly one local image `file://` URI, or undefined. */
+function imageFileUriPath(text) {
+  if (typeof text !== "string") return undefined
+  const value = text.trim()
+  if (!/^file:\/\/\S+$/i.test(value)) return undefined
+  try {
+    const url = new URL(value)
+    if (url.search || url.hash || !IMAGE_EXTENSION.test(url.pathname)) return undefined
+    decodeURIComponent(url.pathname) // rejects a malformed escape
+    return fileURLToPath(url)
+  } catch {
+    return undefined
+  }
 }
 
 /**
