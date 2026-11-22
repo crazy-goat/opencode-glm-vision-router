@@ -15,13 +15,15 @@ in the `ci-ok` job.
 
 ## Layout
 
-| Path                  | Purpose                                                 |
-| --------------------- | ------------------------------------------------------- |
-| `src/index.js`        | Plugin definition and hook registration                 |
-| `src/detect.js`       | Pure detection and routing helpers, no OpenCode imports |
-| `test/detect.test.js` | Unit tests for `src/detect.js`                          |
-| `bin/lint.sh`         | The repository lint contract                            |
-| `docs/workflow.md`    | Development process                                     |
+| Path                  | Purpose                                                                  |
+| --------------------- | ------------------------------------------------------------------------ |
+| `src/index.js`        | Plugin definition and hook registration                                  |
+| `src/detect.js`       | Pure detection and routing helpers, no OpenCode imports                  |
+| `test/detect.test.js` | Unit tests for `src/detect.js`                                           |
+| `test/index.test.js`  | Unit tests for the hooks in `src/index.js`, with a fake OpenCode context |
+| `test/fixtures.js`    | Stored message and model fixtures, checked with the OpenCode schema      |
+| `bin/lint.sh`         | The repository lint contract                                             |
+| `docs/workflow.md`    | Development process                                                      |
 
 There is no build step. The package ships plain ESM JavaScript.
 

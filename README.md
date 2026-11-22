@@ -4,14 +4,16 @@ An [OpenCode](https://opencode.ai) V2 plugin that routes image turns from a
 text-only GLM 5.3 model to the vision-capable GLM 5.3 Flash model of the same
 provider.
 
-The rewrite applies to one request only. The session keeps showing the selected
-model. The assistant message records the model actually used. A text-only user
-turn restores the selected model.
+The rewrite applies to one request at a time. The session keeps showing the
+selected model. The assistant message records the model actually used. The
+next turn without an image uses the selected model again.
 
 ## Requirements
 
 - OpenCode V2, version 2.2.7 or newer. Tested on 2.3.2.
 - Two models under the same provider: one text-only, one with image input.
+- The vision model must be in the OpenCode model list. A disabled model is not
+  in this list.
 
 The default pair targets [OpenCode Go](https://opencode.ai/docs/console/go/):
 
@@ -29,50 +31,95 @@ report a cost of zero and consume the per-5-hour request allowance instead.
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-When `opencode-go/glm-5.3` handles a turn with an image, the plugin uses
-`opencode-go/glm-5.3-flash` for that one request. Other models are left
-unchanged. No options are needed.
+When `opencode-go/glm-5.3` handles a turn with an image, the plugin sends the
+requests of that turn to `opencode-go/glm-5.3-flash`. Other models stay
+unchanged. The default setup needs no options.
+
+## Options
+
+Set the options in the plugin entry of `opencode.jsonc`:
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "github:crazy-goat/opencode-glm-vision-router",
+      "options": {
+        "variants": ["low", "high"],
+        "screenshotTools": ["capture_screen"],
+      },
+    },
+  ],
+}
+```
+
+| Option            | Type     | Default           | Description                                                                                                                        |
+| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`        | string   | `"opencode-go"`   | The provider of both models.                                                                                                       |
+| `text`            | string   | `"glm-5.3"`       | The text-only model. The plugin changes only requests on this model.                                                               |
+| `vision`          | string   | `"glm-5.3-flash"` | The model with image input. It must be in the model list of `provider`.                                                            |
+| `variants`        | string[] | not set           | The variants that the plugin carries over to the vision model. If not set, it carries over each variant that the vision model has. |
+| `rescue`          | boolean  | `true`            | Route the request after a tool result with an image. If `false`, only user images route, and `screenshotTools` has no effect.      |
+| `screenshotTools` | string[] | `[]`              | Tools that save a screenshot to a file and return no image. The plugin adds a read instruction to their result.                    |
 
 ## How it works
 
-1. The `prompt` hook checks the prompt files and the admission metadata
-   attachments of each new user turn and stores an image flag for that
-   session. Client uploads that arrive as metadata attachments are covered.
-2. The `context` hook keeps the flag armed for the rest of the turn when the
-   assembled request carries images: metadata attachments or image parts of
-   the last user message, or image parts in tool results. It runs after model
-   resolution, so it can only affect later requests of the same turn.
-3. The `experimental.model.resolve` hook rewrites the model for `primary`
-   requests when the flag is set and the selected model is
-   `opencode-go/glm-5.3`. Auxiliary requests such as titles and compaction
-   are skipped.
-4. When the text model reads an image file with the `read` tool, the
-   `execute.after` tool hook replaces the image result with a short pointer
-   text and arms the flag, before the result reaches the model. The pointer
-   names the file and the vision model, and asks for the file to be read
-   again. The next request then resolves to the vision model, and the repeat
-   read returns the image normally.
-5. When a screenshot tool completes on the text model — `browse_screenshot`
-   or `browser_screenshot` — the same hook arms the flag without touching the
-   result. OpenCode stores the returned image in the tool result, so the
-   next request, served by the vision model, sees the image without any
-   read. A screenshot saved only to a file gets a short instruction naming
-   the path, and the vision model reads that file once.
+The plugin keeps no state. It decides from the messages that OpenCode stores
+for the session.
 
-Images in older turns do not keep the router armed. A new user turn without an
-image clears the flag.
+1. Before each `primary` request on the text model, the
+   `experimental.model.resolve` hook reads the stored messages with
+   `ctx.session.context()`.
+2. The plugin takes the messages after the last `idle` marker. These messages
+   are the current turn. OpenCode writes the marker when the session stops.
+3. The plugin looks for an image in the current turn:
+   - an image file in a user message;
+   - an image path attachment from a desktop client, in the message metadata;
+   - an image file in a tool result, for example from a `read` of an image or
+     from a screenshot tool. The `rescue` option controls this check.
+4. If the turn has an image, the request uses the vision model. The plugin
+   carries over the variant only if the vision model has it and `variants`
+   allows it.
+5. If the vision model is not in the model list, or if the check fails, the
+   request keeps the selected model. The plugin writes a warning to the log
+   once.
+
+OpenCode stores a new prompt before the first request of a turn. It stores the
+tool results of a step before the next request. Because of this order, a user
+image routes the first request of its turn. A tool image routes the request
+after the tool step.
+
+A text prompt that you steer into a running image turn stays in that turn. The
+next requests of the turn still use the vision model.
+
+Requests of other kinds, such as titles and compaction, stay unchanged.
+Requests on other models or other providers also stay unchanged.
+
+For a tool in `screenshotTools`, the `execute.after` tool hook checks the
+completed result. If the result has no image but names a saved image file, the
+hook adds this text to the result:
+`Screenshot saved to: <path>. Read the file to view the image.` The model then
+reads the file, and the next request uses the vision model.
 
 ## Limitations
 
-- `experimental.model.resolve` is experimental. Its name or event shape may
+- `experimental.model.resolve` is experimental. Its name or event shape can
   change in a future OpenCode release.
 - A rewrite can only select another model from the **same provider**. A model
   from another provider resolves as unavailable.
-- A variant is carried over only when it appears in `variants`.
-- OpenCode replaces unsupported image parts with a short note when the active
-  model has no image input. The router arms before that note can matter: on
-  image reads and on the screenshot tools above. Inline images returned by
-  other tools are not detected; save such an image to a file and read it.
+- If the vision model is not in the model list, image turns stay on the text
+  model. Do not disable the vision model.
+- The plugin reads the stored session before each `primary` request on the text
+  model. In a long session, this read takes more time.
+- Images in older turns do not route. If a new turn is about an earlier image,
+  attach the image again.
+- OpenCode writes one `idle` marker when the session stops. A prompt that you
+  queue during an image turn runs before that marker, so it also uses the
+  vision model.
+- A desktop path attachment gives the model only the file path. The vision model
+  must read the file to see the image.
+- In a later turn on the text model, OpenCode replaces older images with a short
+  note.
 - The plugin does not change the session's selected model. `/models` still
   shows the text model.
 

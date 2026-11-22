@@ -1,11 +1,12 @@
 # @crazy-goat/opencode-glm-vision-router
 
-Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje wiadomości z obrazem z
-modelu `GLM 5.3` na model `GLM 5.3 Flash` tego samego dostawcy.
+Wtyczka [OpenCode](https://opencode.ai) V2. Kieruje tury z obrazem z modelu
+`GLM 5.3` bez obsługi obrazu na model `GLM 5.3 Flash` z obsługą obrazu. Oba
+modele mają tego samego dostawcę.
 
-Zmiana dotyczy jednego żądania. Sesja nadal pokazuje wybrany model. Wiadomość
-asystenta zapisuje model faktycznie użyty. Kolejna wiadomość bez obrazu wraca
-do modelu tekstowego.
+Zmiana dotyczy pojedynczego żądania. Sesja nadal pokazuje wybrany model.
+Wiadomość asystenta zapisuje model faktycznie użyty. Następna tura bez obrazu
+znowu używa wybranego modelu.
 
 Jest to tłumaczenie [README.md](README.md). Dokumentacja źródłowa jest w języku
 angielskim.
@@ -14,6 +15,8 @@ angielskim.
 
 - OpenCode V2 w wersji 2.2.7 lub nowszej. Sprawdzono na 2.3.2.
 - Dwa modele pod jednym dostawcą: jeden bez obsługi obrazu, jeden z obsługą.
+- Model z obsługą obrazu musi być na liście modeli OpenCode. Wyłączony model nie
+  jest na tej liście.
 
 Domyślna para dotyczy [OpenCode Go](https://opencode.ai/docs/console/go/):
 
@@ -28,43 +31,95 @@ Domyślna para dotyczy [OpenCode Go](https://opencode.ai/docs/console/go/):
 opencode plugin add github:crazy-goat/opencode-glm-vision-router
 ```
 
-Gdy `opencode-go/glm-5.3` obsługuje wiadomość z obrazem, wtyczka używa
-`opencode-go/glm-5.3-flash` dla tego jednego żądania. Inne modele pozostają bez
-zmian. Wtyczka nie wymaga opcji.
+Gdy `opencode-go/glm-5.3` obsługuje turę z obrazem, wtyczka wysyła żądania tej
+tury do `opencode-go/glm-5.3-flash`. Inne modele pozostają bez zmian. Domyślne
+ustawienia nie wymagają opcji.
+
+## Opcje
+
+Ustaw opcje we wpisie wtyczki w pliku `opencode.jsonc`:
+
+```jsonc
+{
+  "plugins": [
+    {
+      "package": "github:crazy-goat/opencode-glm-vision-router",
+      "options": {
+        "variants": ["low", "high"],
+        "screenshotTools": ["capture_screen"],
+      },
+    },
+  ],
+}
+```
+
+| Opcja             | Typ      | Domyślnie         | Opis                                                                                                                               |
+| ----------------- | -------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `provider`        | string   | `"opencode-go"`   | Dostawca obu modeli.                                                                                                               |
+| `text`            | string   | `"glm-5.3"`       | Model bez obsługi obrazu. Wtyczka zmienia tylko żądania na tym modelu.                                                             |
+| `vision`          | string   | `"glm-5.3-flash"` | Model z obsługą obrazu. Musi być na liście modeli dostawcy `provider`.                                                             |
+| `variants`        | string[] | brak              | Warianty, które wtyczka przenosi na model z obsługą obrazu. Bez tej opcji wtyczka przenosi każdy wariant, który ma ten model.      |
+| `rescue`          | boolean  | `true`            | Kieruje żądanie po wyniku narzędzia z obrazem. Przy `false` liczą się tylko obrazy od użytkownika, a `screenshotTools` nie działa. |
+| `screenshotTools` | string[] | `[]`              | Narzędzia, które zapisują zrzut ekranu do pliku i nie zwracają obrazu. Wtyczka dodaje do ich wyniku polecenie odczytu pliku.       |
 
 ## Jak to działa
 
-1. Hook `prompt` sprawdza pliki promptu i załączniki z metadanych dla każdej
-   nowej wiadomości użytkownika. Załączniki z klientów TUI i desktopu działają.
-2. Hook `context` utrzymuje flagę, gdy złożone żądanie zawiera obraz. Działa
-   tylko na późniejsze żądania tej samej tury.
-3. Hook `experimental.model.resolve` przepisuje model dla żądań `primary`, gdy
-   flaga jest ustawiona, a wybrany model to `opencode-go/glm-5.3`.
-4. Gdy model tekstowy czyta plik obrazu narzędziem `read`, hook
-   `execute.after` zamienia wynik na krótki wskaźnik i uzbraja flagę. Wskaźnik
-   podaje ścieżkę pliku i model z obsługą obrazu. Następne żądanie idzie na
-   model wizyjny, a powtórne czytanie zwraca obraz.
-5. Gdy narzędzie zrzutu ekranu zakończy pracę na modelu tekstowym —
-   `browse_screenshot` lub `browser_screenshot` — ten sam hook uzbraja flagę
-   bez zmiany wyniku. OpenCode zapisuje zwrócony obraz w wyniku narzędzia,
-   więc następne żądanie, obsłużone przez model wizyjny, widzi obraz bez
-   czytania. Zrzut zapisany tylko do pliku dostaje krótką instrukcję ze
-   ścieżką, a model wizyjny czyta ten plik raz.
+Wtyczka nie przechowuje stanu. Decyduje na podstawie wiadomości, które OpenCode
+zapisuje w sesji.
 
-Obraz ze starszych tur nie utrzymuje flagi. Nowa wiadomość bez obrazu czyści
-flagę.
+1. Przed każdym żądaniem `primary` na modelu tekstowym hook
+   `experimental.model.resolve` czyta zapisane wiadomości przez
+   `ctx.session.context()`.
+2. Wtyczka bierze wiadomości po ostatnim znaczniku `idle`. Te wiadomości to
+   bieżąca tura. OpenCode zapisuje ten znacznik, gdy sesja kończy pracę.
+3. Wtyczka szuka obrazu w bieżącej turze:
+   - pliku obrazu w wiadomości użytkownika;
+   - załącznika ze ścieżką do obrazu z klienta desktop, w metadanych wiadomości;
+   - pliku obrazu w wyniku narzędzia, na przykład po odczycie obrazu narzędziem
+     `read` albo po zrzucie ekranu. Opcja `rescue` steruje tym sprawdzeniem.
+4. Gdy tura ma obraz, żądanie używa modelu z obsługą obrazu. Wtyczka przenosi
+   wariant tylko wtedy, gdy ten model go ma i gdy opcja `variants` na to
+   pozwala.
+5. Gdy modelu z obsługą obrazu nie ma na liście modeli albo gdy sprawdzenie się
+   nie uda, żądanie zostaje na wybranym modelu. Wtyczka raz zapisuje
+   ostrzeżenie w logu.
+
+OpenCode zapisuje nowy prompt przed pierwszym żądaniem tury. Wyniki narzędzi z
+danego kroku zapisuje przed następnym żądaniem. Dlatego obraz od użytkownika
+kieruje już pierwsze żądanie swojej tury. Obraz z narzędzia kieruje żądanie po
+kroku z tym narzędziem.
+
+Prompt tekstowy wysłany jako `steer` do trwającej tury z obrazem zostaje w tej
+turze. Kolejne żądania tej tury nadal używają modelu z obsługą obrazu.
+
+Żądania innych rodzajów, na przykład tytuły i kompakcja, pozostają bez zmian.
+Żądania na innych modelach i u innych dostawców też pozostają bez zmian.
+
+Dla narzędzia z listy `screenshotTools` hook narzędzi `execute.after` sprawdza
+zakończony wynik. Gdy wynik nie ma obrazu, ale podaje ścieżkę zapisanego pliku
+obrazu, hook dodaje do wyniku tekst:
+`Screenshot saved to: <path>. Read the file to view the image.` Model czyta
+wtedy plik, a następne żądanie używa modelu z obsługą obrazu.
 
 ## Ograniczenia
 
-- Hook `experimental.model.resolve` jest eksperymentalny. Jego nazwa może się
-  zmienić w kolejnej wersji OpenCode.
-- Zmiana modelu działa tylko w obrębie jednego dostawcy.
-- Wariant przechodzi tylko wtedy, gdy jest na liście `variants`.
-- OpenCode zamienia nieobsługiwane części obrazu na krótką notatkę, gdy aktywny
-  model nie ma wejścia obrazu. Wtyczka uzbraja flagę, zanim to ma znaczenie:
-  przy czytaniu obrazów i przy narzędziach zrzutu ekranu powyżej. Obrazy
-  inline z innych narzędzi nie są wykrywane; zapisz taki obraz do pliku i
-  przeczytaj go narzędziem `read`.
+- Hook `experimental.model.resolve` jest eksperymentalny. Jego nazwa lub
+  kształt zdarzenia mogą się zmienić w kolejnej wersji OpenCode.
+- Zmiana modelu działa tylko w obrębie **jednego dostawcy**. OpenCode uznaje
+  model innego dostawcy za niedostępny.
+- Gdy modelu z obsługą obrazu nie ma na liście modeli, tury z obrazem zostają na
+  modelu tekstowym. Nie wyłączaj modelu z obsługą obrazu.
+- Wtyczka czyta zapisaną sesję przed każdym żądaniem `primary` na modelu
+  tekstowym. W długiej sesji ten odczyt trwa dłużej.
+- Obrazy ze starszych tur nie zmieniają modelu. Gdy nowa tura dotyczy
+  wcześniejszego obrazu, załącz ten obraz ponownie.
+- OpenCode zapisuje jeden znacznik `idle`, gdy sesja kończy pracę. Prompt
+  dodany do kolejki (`queue`) w czasie tury z obrazem działa przed tym
+  znacznikiem, więc też używa modelu z obsługą obrazu.
+- Załącznik ze ścieżką z klienta desktop daje modelowi tylko ścieżkę pliku.
+  Model z obsługą obrazu musi przeczytać plik, żeby zobaczyć obraz.
+- W późniejszej turze na modelu tekstowym OpenCode zamienia starsze obrazy na
+  krótką notatkę.
 - Wtyczka nie zmienia modelu wybranego w sesji. `/models` nadal pokazuje model
   tekstowy.
 
