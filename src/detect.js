@@ -60,7 +60,8 @@ export function toolResultHasImage(message) {
   })
 }
 
-const CODEMODE_NOTICE = /^<codemode id="[^"\n]*" state="completed">\n([\s\S]*)\n<\/codemode>$/
+const CODEMODE_NOTICE =
+  /^<codemode id="[^"\n]*" state="(?:completed|error)">\n([\s\S]*)\n<\/codemode>$/
 const FILE_LOCATION = /^(\/|file:\/\/|[A-Za-z]:[\\/])/
 
 /**

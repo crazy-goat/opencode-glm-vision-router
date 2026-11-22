@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+  codemodeNoticeHasImage,
   currentTurn,
   findModel,
   isImageMime,
@@ -7,7 +8,6 @@ import {
   rescueEnabled,
   screenshotImage,
   toolContent,
-  codemodeNoticeHasImage,
   toolResultHasImage,
   turnHasImage,
   userMessageHasImage,
@@ -175,8 +175,12 @@ describe("codemodeNoticeHasImage", () => {
     expect(codemodeNoticeHasImage(codemodeNotice({ paths: ["/tmp/tool_0123456789ab.pdf"] }))).toBe(
       false,
     )
-    const failed = codemodeNotice({ output: "see /tmp/x.png in prose", state: "failed" })
-    expect(codemodeNoticeHasImage(failed)).toBe(false)
+    const cancelled = codemodeNotice({ paths: [png], state: "cancelled" })
+    expect(codemodeNoticeHasImage(cancelled)).toBe(false)
+  })
+
+  test("accepts the notice of a job that ended with an error and saved files", () => {
+    expect(codemodeNoticeHasImage(codemodeNotice({ paths: [png], state: "error" }))).toBe(true)
   })
 
   test("rejects the text of a plain synthetic message and of a user message", () => {
