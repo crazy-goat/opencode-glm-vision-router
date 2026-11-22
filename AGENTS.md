@@ -15,7 +15,7 @@ provider and an isolated `opencode serve` that loads the plugin from the working
 checks the model of each request in six scenarios: image upload, next text turn, image
 read, steered prompt, queued prompt and auxiliary requests. It prints a JSON summary and
 exits non-zero if a check fails. It prints `skipped` and exits 0 if no `opencode` binary is
-found. Set `OPENCODE_BIN` to choose the binary. The child process gets a temporary HOME,
+found. If `OPENCODE_BIN` is set but is not an executable file, it exits 1. Set `OPENCODE_BIN` to choose the binary. The child process gets a temporary HOME,
 TMPDIR and XDG directories, so it never reads your user config or sessions. System and
 MDM-managed OpenCode config still applies. Set `E2E_DEBUG=1` to
 print the server log.
